@@ -375,3 +375,199 @@
      (remainder (remainder 206 40) (remainder 40 (remainder 206 40))))
     18
     4))
+
+(define e21
+  '(199
+    1999
+    7))
+
+(define (smallest-divisor n)
+  (find-divisor n 2))
+
+(define (find-divisor n test-divisor)
+  (cond ((> (square test-divisor) n) n)
+        ((divides? test-divisor n) test-divisor)
+        (else (find-divisor n (+ test-divisor 1)))))
+
+(define (divides? a b)
+  (= (remainder b a) 0))
+
+(define (prime? n)
+  (= n (smallest-divisor n)))
+
+(define e22
+  '(search-for-primes
+    (1000 ((1009 0)
+           (1013 0)
+           (1019 0)))
+    (10000 ((10007 1)
+            (10009 1)
+            (10037 1)))
+    (100000 ((100003 3)
+             (100019 3)
+             (100043 3)))
+    (1000000 ((1000003 10)
+              (1000033 7)
+              (1000037 7)))
+    "Yes, each increase of 10x in n corresponds to an increase of roughtly
+    sqrt(10)x in time."))
+
+(define (search-for-primes a b)
+  (define (check-range n)
+    (if (<= n b)
+        (test-prime n)))
+  (define (test-prime n)
+    (timed-prime-test n)
+    (check-range (+ n 2)))
+  (check-range (if (even? a)
+                   (+ a 1)
+                   a)))
+
+(define (timed-prime-test n)
+  (newline)
+  (display n)
+  (start-prime-test n (real-time-clock)))
+
+(define (start-prime-test n start-time)
+  (if (prime? n)
+      (report-prime (- (real-time-clock) start-time))))
+
+(define (report-prime elapsed-time)
+  (display " *** ")
+  (display elapsed-time))
+
+(define e23
+  '((1009 1)
+    (1013 0)
+    (1019 0)
+    (10007 0)
+    (10009 1)
+    (10037 1)
+    (100003 2)
+    (100019 1)
+    (100043 2)
+    (1000003 4)
+    (1000033 6)
+    (1000037 4)
+    "Yes, it is about twice as fast as in exercise 22."))
+
+(define (next x)
+  (if (= x 2)
+      3
+      (+ x 2)))
+
+(define (smallest-divisor-e23 n)
+  (find-divisor-e23 n 2))
+
+(define (find-divisor-e23 n test-divisor)
+  (cond ((> (square test-divisor) n) n)
+        ((divides? test-divisor n) test-divisor)
+        (else (find-divisor-e23 n (next test-divisor)))))
+
+(define (prime-e23? n)
+  (= n (smallest-divisor-e23 n)))
+
+(define (timed-prime-test-e23 n)
+  (newline)
+  (display n)
+  (start-prime-test-e23 n (real-time-clock)))
+
+(define (start-prime-test-e23 n start-time)
+  (if (prime-e23? n)
+      (report-prime (- (real-time-clock) start-time))))
+
+(define e24
+  '((1009 0)
+    (1013 0)
+    (1019 0)
+    (10007 0)
+    (10009 0)
+    (10037 0)
+    (100003 1)
+    (100019 0)
+    (100043 0)
+    (1000003 0)
+    (1000033 0)
+    (1000037 0)
+    "The time needed to test primes near 1,000,000 should be around twice the
+    time needed to test primes near 1000."
+    "The data does not demonstrate this because fast-prime? is too fast to be
+    measured even for n = 1,000,000."))
+
+(define (expmod base exp m)
+  (cond ((= exp 0) 1)
+        ((even? exp)
+         (remainder (square (expmod base (/ exp 2) m))
+                    m))
+        (else
+         (remainder (* base (expmod base (- exp 1) m))
+                    m))))
+
+(define (fermat-test n)
+  (define (try-it a)
+    (= (expmod a n n) a))
+  (try-it (+ 1 (random (- n 1)))))
+
+(define (fast-prime? n times)
+  (cond ((= times 0) true)
+        ((fermat-test n) (fast-prime? n (- times 1)))
+        (else false)))
+
+(define (timed-prime-test-e24 n)
+  (newline)
+  (display n)
+  (start-prime-test-e24 n (real-time-clock)))
+
+(define (start-prime-test-e24 n start-time)
+  (if (fast-prime? n 1)
+      (report-prime (- (real-time-clock) start-time))))
+
+(define e25
+  "This definition of expmod returns the correct answer but is more inefficient
+  than the original one because it must compute the result of the exponential
+  before finding the remainder.")
+
+(define e26
+  "The call (expmod base (/ exp 2) m) is duplicated so each time expmod is
+  called with an even exponent it has to call itself twice. This makes the
+  runtime O(2^(original time)) = O(2^log(n)) = O(n).")
+
+(define (e27 n)
+  (define (test a)
+    (or (= a n)
+        (and (= (expmod a n n) a)
+             (test (+ a 1)))))
+  (test 1))
+
+(define (e28 n)
+  (= (expmod-e28 (+ 1 (random (- n 1)))
+                 (- n 1)
+                 n)
+     1))
+
+(define (expmod-e28 base exp m)
+  (define (check-trivial root)
+    (check-square-mod (remainder (square root) m)
+                      (or (= root 1) (= root (- m 1)))))
+  (define (check-square-mod rem trivial)
+    (if (and (not trivial) (= rem 1))
+        0
+        rem))
+  (cond ((= exp 0) 1)
+        ((even? exp)
+         (check-trivial (expmod base (/ exp 2) m)))
+        (else
+         (remainder (* base (expmod base (- exp 1) m))
+                    m))))
+
+(define (e29 f a b n)
+  (define (y k)
+    (f (+ a (* k h))))
+  (define (add k)
+    (+ (* 4 (y k))
+       (if (= (+ k 1) n)
+           (y n)
+           (+ (* 2 (y (+ k 1)))
+              (add (+ k 2))))))
+  (define h (/ (- b a) n))
+  (* (/ h 3) (+ (y 0) (add 1))))
