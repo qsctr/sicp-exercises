@@ -569,3 +569,245 @@
               (add (+ k 2))))))
   (define h (/ (- b a) n))
   (* (/ h 3) (+ (y 0) (add 1))))
+
+(define (sum term a next b)
+  (define (iter a result)
+    (if (> a b)
+        result
+        (iter (next a) (+ result (term a)))))
+  (iter a 0))
+
+(define e30 sum)
+
+(define e31
+  '((product
+     factorial
+     approx-pi/4)
+    product-iter))
+
+(define (product term a next b)
+  (if (> a b)
+      1
+      (* (term a)
+         (product term (next a) next b))))
+
+(define (factorial n)
+  (product identity 1 inc n))
+
+(define (identity x) x)
+
+(define (inc x)
+  (+ x 1))
+
+(define (approx-pi/4 n)
+  (define (inc-2 x)
+    (+ x 2))
+  (define (*-inc-2 x)
+    (* x (inc-2 x)))
+  (/ (product *-inc-2 2.0 inc-2 (* n 2))
+     (product square 3.0 inc-2 (inc (* n 2)))))
+
+(define (product-iter term a next b)
+  (define (iter a result)
+    (if (> a b)
+        result
+        (iter (next a) (* result (term a)))))
+  (iter a 1))
+
+(define e32
+  '((accumulate
+     sum-accumulate
+     product-accumulate)
+    accumulate-iter))
+
+(define (accumulate combiner null-value term a next b)
+  (if (> a b)
+      null-value
+      (combiner (term a)
+                (accumulate combiner null-value term (next a) next b))))
+
+(define (sum-accumulate term a next b)
+  (accumulate + 0 term a next b))
+
+(define (product-accumulate term a next b)
+  (accumulate * 1 term a next b))
+
+(define (accumulate-iter combiner null-value term a next b)
+  (define (iter a result)
+    (if (> a b)
+        result
+        (iter (next a) (combiner result (term a)))))
+  (iter a null-value))
+
+(define e33
+  '(filtered-accumulate
+    sum-of-squares-of-primes
+    product-of-relative-primes-to))
+
+(define (filtered-accumulate combiner null-value predicate? term a next b)
+  (if (> a b)
+      null-value
+      (combiner (if (predicate? a)
+                    (term a)
+                    null-value)
+                (filtered-accumulate combiner
+                                     null-value
+                                     predicate?
+                                     term
+                                     (next a)
+                                     next
+                                     b))))
+
+(define (sum-of-squares-of-primes a b)
+  (filtered-accumulate + 0 prime? square a inc b))
+
+(define (product-of-relative-primes-to n)
+  (define (relatively-prime-to-n? i)
+    (= (gcd i n) 1))
+  (filtered-accumulate * 1 relatively-prime-to-n? identity 1 inc (- n 1)))
+
+(define e34
+  '(((f f)
+     (f 2)
+     (2 2))
+    "There will be an error because 2 cannot be applied to 2."))
+
+(define e35
+  '("phi^2 = phi + 1
+     phi = 1 + 1/phi"
+    (fixed-point (lambda (x) (+ 1 (/ 1 x))) 1.0)))
+
+(define tolerance 0.00001)
+
+(define (fixed-point f first-guess)
+  (define (close-enough? v1 v2)
+    (< (abs (- v1 v2)) tolerance))
+  (define (try guess)
+    (let ((next (f guess)))
+      (if (close-enough? guess next)
+          next
+          (try next))))
+  (try first-guess))
+
+(define e36
+  '(fixed-point-e36
+    (fixed-point-e36 (lambda (x) (/ (log 1000) (log x))) 4)
+    (fixed-point-e36 (lambda (x) (average x (/ (log 1000) (log x)))) 4)
+    (steps-with-average-damping 7)
+    (steps-without-average-damping 29)))
+
+(define (fixed-point-e36 f first-guess)
+  (define (close-enough? v1 v2)
+    (< (abs (- v1 v2)) tolerance))
+  (define (try guess)
+    (let ((next (f guess)))
+      (display next)
+      (newline)
+      (if (close-enough? guess next)
+          next
+          (try next))))
+  (try first-guess))
+
+(define e37
+  '((cont-frac
+     10)
+    cont-frac-iter))
+
+(define (cont-frac n d k)
+  (define (term i)
+    (/ (n i)
+       (if (= i k)
+           (d k)
+           (+ (d i) (term (+ i 1))))))
+  (term 1))
+
+(define (cont-frac-iter n d k)
+  (define (iter i result)
+    (if (= i 0)
+        result
+        (iter (- i 1)
+              (/ (n i)
+                 (+ (d i) result)))))
+  (iter k 0))
+
+(define (e38 k)
+  (+ 2 (cont-frac-iter (lambda (i) 1.0)
+                       (lambda (i) (if (= (remainder i 3) 2)
+                                       (* 2 (/ (+ 1 i) 3))
+                                       1))
+                       k)))
+
+(define (tan-cf x k)
+  (cont-frac-iter (lambda (i) (if (= i 1) x (- (square x))))
+                  (lambda (i) (- (* i 2) 1))
+                  k))
+
+(define e39 tan-cf)
+
+(define (cubic a b c)
+  (lambda (x) (+ (cube x) (* a (square x)) (* b x) c)))
+
+(define e40 cubic)
+
+(define e41
+  '(double
+    21))
+
+(define (double f)
+  (lambda (x) (f (f x))))
+
+(define (compose f g)
+  (lambda (x) (f (g x))))
+
+(define e42 compose)
+
+(define (repeated f n)
+  (if (= n 1)
+      f
+      (compose f (repeated f (- n 1)))))
+
+(define e43 repeated)
+
+(define e44
+  '(smooth
+    n-fold-smooth))
+
+(define (smooth f)
+  (let ((dx 0.01))
+    (lambda (x) (/ (+ (f (- x dx))
+                      (f x)
+                      (f (+ x dx)))
+                   3))))
+
+(define (n-fold-smooth f n)
+  ((repeated smooth n) f))
+
+(define (e45 n x)
+  (fixed-point ((repeated average-damp (floor (/ (log n) (log 2))))
+                (lambda (y) (/ x (e16 y (- n 1)))))
+               1.0))
+
+(define (average-damp f)
+  (lambda (x) (average x (f x))))
+
+(define e46
+  '(iterative-improve
+    sqrt-iterative-improve
+    fixed-point-iterative-improve))
+
+(define (iterative-improve good-enough? improve)
+  (define (iter guess)
+    (if (good-enough? guess)
+        guess
+        (iter (improve guess))))
+  iter)
+
+(define (sqrt-iterative-improve x)
+  ((iterative-improve (lambda (guess) (< (abs (- (square guess) x)) 0.001))
+                      (lambda (guess) (average guess (/ x guess))))
+   1.0))
+
+(define (fixed-point-iterative-improve f first-guess)
+  ((iterative-improve (lambda (guess) (< (abs (- (f guess) guess)) tolerance))
+                      f)
+   first-guess))
