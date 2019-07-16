@@ -309,14 +309,15 @@
   (expt-iter 1 b n))
 
 (define (e17 a b)
+  (define (double x) (* x 2))
+  (define (halve x) (/ x 2))
   (cond ((= b 0) 0)
         ((even? b) (e17 (double a) (halve b)))
         (else (+ a (e17 a (- b 1))))))
 
-(define (double x) (* x 2))
-(define (halve x) (/ x 2))
-
 (define (e18 a b)
+  (define (double x) (* x 2))
+  (define (halve x) (/ x 2))
   (define (*-iter x a b)
     (cond ((= b 0) x)
           ((even? b) (*-iter x (double a) (halve b)))
