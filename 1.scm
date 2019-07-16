@@ -28,9 +28,6 @@
 (define (sum-of-squares x y)
   (+ (square x) (square y)))
 
-(define (square x)
-  (* x x))
-
 (define e4
   "if b > 0 then a + b else a - b")
 
