@@ -127,10 +127,10 @@
 (define (make-interval a b) (cons a b))
 
 (define (lower-bound interval)
-  (car interval))
+  (min (car interval) (cdr interval)))
 
 (define (upper-bound interval)
-  (cdr interval))
+  (max (car interval) (cdr interval)))
 
 ; 8
 
