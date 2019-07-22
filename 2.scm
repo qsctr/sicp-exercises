@@ -187,11 +187,242 @@ width of (x * y) = 15 - 1 = 14"
 
 ; 11
 
-(define (mul-interval x y)
+(define (mul-interval-alt x y)
   (let ((ux (upper-bound x))
         (lx (lower-bound x))
         (uy (upper-bound y))
         (ly (lower-bound y)))
-    (cond ((and (positive? ux) (positive? lx) (positive? uy) (positive? ly))
-           (make-interval (* lx ly) (* ux uy))))))
-          ; TODO
+    (if (positive? ux)
+        (if (positive? lx)
+            (if (positive? uy)
+                (if (positive? ly)
+                    (make-interval (* lx ly) (* ux uy))
+                    (make-interval (* ux ly) (* ux uy)))
+                (make-interval (* ux ly) (* lx uy)))
+            (if (positive? uy)
+                (if (positive? ly)
+                    (make-interval (* lx uy) (* ux uy))
+                    (make-interval (min (* ux ly) (* lx uy))
+                                   (max (* ux uy) (* lx ly))))
+                (make-interval (* ux ly) (* lx ly))))
+        (if (positive? uy)
+            (if (positive? ly)
+                (make-interval (* lx uy) (* ux ly))
+                (make-interval (* lx uy) (* lx ly)))
+            (make-interval (* ux uy) (* lx ly))))))
+
+; 12
+
+(define (make-center-width c w)
+  (make-interval (- c w) (+ c w)))
+
+(define (center i)
+  (/ (+ (lower-bound i) (upper-bound i)) 2))
+
+(define (width i)
+  (/ (- (upper-bound i) (lower-bound i)) 2))
+
+(define (make-center-percent c p)
+  (make-center-width c (* c (/ p 100.0))))
+
+(define (percent i)
+  (* (/ (width i) (center i)) 100))
+
+; 13
+
+"(a +- x%) * (b +- y%)
+max:
+  (a + x%) * (b + y%)
+  = (a + a * x%) * (b + b * y%)
+  = a * b + a * b * y% + a * b * x% + a * b * x% * y%
+  = (a * b)(1 + x% * y%) + (a * b)(x% * y%)
+min:
+  (a - x%) * (b - y%)
+  = (a - a * x%) * (b - b * y%)
+  = a * b - a * b * y% - a * b * x% + a * b * x% * y%
+  = (a * b)(1 + x% * y%) - (a * b)(x% + y%)
+tolerance:
+  (a * b)(x% + y%) / (a * b)(1 + x% * y%)
+  = (x% + y%) / (1 + x% * y%)
+"
+
+; 14
+
+(define (e14)
+  (let ((a (make-center-percent 10 1))
+        (b (make-center-percent 20 2)))
+    (display (percent (div-interval a a))) (newline)
+    (display (percent (div-interval a b))) (newline)))
+
+"The percent tolerance of the quotient is the sum of the percent tolerances of
+its two arguments."
+
+; 15
+
+"Yes, because when interval variables are repeated, the error bounds of the
+result increases, even if the variables are identical. This is why the width of
+the result of par2 is smaller than that of par1."
+
+; 16
+
+"Equivalent algebraic expressions may lead to different answers because
+variables may be repeated in some expressions and the order and amount of
+arithmetic operations can also differ. To solve this problem, you would need to
+implement a symbolic algebra system which reduces any expression to some normal
+form which minimizes the error, then computes the result of the normalized
+expression."
+
+; TODO
+
+; 17
+
+(define (last-pair xs)
+  (if (null? (cdr xs))
+      xs
+      (last-pair (cdr xs))))
+
+; 18
+
+(define (reverse xs)
+  (define (go xs ys)
+    (if (null? xs)
+        ys
+        (go (cdr xs) (cons (car xs) ys))))
+  (go xs '()))
+
+; 19
+
+(define (cc amount coin-values)
+  (cond ((= amount 0) 1)
+        ((or (< amount 0) (no-more? coin-values)) 0)
+        (else (+ (cc amount
+                     (except-first-denomination coin-values))
+                 (cc (- amount (first-denomination coin-values))
+                     coin-values)))))
+
+(define (first-denomination coin-values)
+  (car coin-values))
+
+(define (except-first-denomination coin-values)
+  (cdr coin-values))
+
+(define (no-more? coin-values)
+  (null? coin-values))
+
+"The order of the list coin-values does not matter, because the results of the
+recursive calls are added together and addition is commutative."
+
+; 20
+
+(define (same-parity x . xs)
+  (define (parity n)
+    (remainder n 2))
+  (let ((x-parity (parity x)))
+    (define (go xs)
+      (cond ((null? xs) xs)
+            ((= (parity (car xs)) x-parity) (cons (car xs) (go (cdr xs))))
+            (else (go (cdr xs)))))
+    (cons x (go xs))))
+
+; 21
+
+(define (square-list-direct items)
+  (if (null? items)
+      '()
+      (cons (square (car items)) (square-list-direct (cdr items)))))
+
+(define (square-list-map items)
+  (map square items))
+
+; 22
+
+"The item at the front of the list gets consed onto the result list first, and
+the item at the end is added last."
+
+"The result is not a list because the tail of the list is in the car part of
+each pair, not the cdr part."
+
+; 23
+
+(define (for-each f xs)
+  (define (run xs)
+    (f (car xs))
+    (for-each f (cdr xs)))
+  (if (not (null? xs))
+    (run xs)))
+
+; 24
+
+"(1 (2 (3 4)))"
+
+"
+---------    ---------
+| o | o-+--->| o | / |
+--|------    --|------
+  V            V
+-----        ---------    ---------
+| 1 |        | o | o-+--->| o | / |
+-----        --|------    --|------
+               V            V
+             -----        ---------    ---------
+             | 2 |        | o | o-+--->| 4 | / |
+             -----        --|------    ---------
+                            V
+                          -----
+                          | 3 |
+                          -----
+"
+
+"
+  o
+ / \
+1   o
+   / \
+  2   o
+     / \
+    3   4
+"
+
+; 25
+
+(define (e25)
+  (display (car (cdr (car (cdr (cdr (list 1 3 (list 5 7) 9))))))) (newline)
+  (display (car (car (list (list 7))))) (newline)
+  (display
+   (car
+    (cdr
+     (car
+      (cdr
+       (car
+        (cdr
+         (car
+          (cdr
+           (car
+            (cdr
+             (car
+              (cdr (list 1
+                         (list 2
+                               (list 3
+                                     (list 4
+                                           (list 5
+                                                 (list 6 7)))))))))))))))))))
+  (newline))
+
+; 26
+
+"(1 2 3 4 5 6)"
+"((1 2 3) 4 5 6)"
+"((1 2 3) (4 5 6))"
+
+; 27
+
+(define (deep-reverse x)
+  (define (go xs ys)
+    (if (null? xs)
+        ys
+        (go (cdr xs)
+            (cons (deep-reverse (car xs))
+                  ys))))
+  (if (pair? x)
+      (go x '())
+      x))
