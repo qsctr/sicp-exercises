@@ -426,3 +426,53 @@ each pair, not the cdr part."
   (if (pair? x)
       (go x '())
       x))
+
+; 28
+
+(define (fringe x)
+  (cond ((null? x) '())
+        ((pair? x) (append (fringe (car x))
+                           (fringe (cdr x))))
+        (else (list x))))
+
+; 29
+
+(define (left-branch mobile)
+  (car mobile))
+
+(define (right-branch mobile)
+  (cadr mobile))
+
+(define (branch-length branch)
+  (car branch))
+
+(define (branch-structure branch)
+  (cadr branch))
+
+(define (total-weight x)
+  (if (pair? x)
+      (+ (total-weight (branch-structure (left-branch x)))
+         (total-weight (branch-structure (right-branch x))))
+      x))
+
+(define (balanced? mobile)
+  (define (balanced-weight x)
+    (define (branch-weight side callback)
+      (let ((branch (side x)))
+        (callback branch (balanced-weight (branch-structure branch)))))
+    (if (pair? x)
+        (branch-weight left-branch
+          (lambda (left left-weight)
+            (if left-weight
+                (branch-weight right-branch
+                  (lambda (right right-weight)
+                    (if (and right-weight
+                             (= (* (branch-length left) left-weight)
+                                (* (branch-length right) right-weight)))
+                        (+ left-weight right-weight)
+                        false)))
+                false)))
+        x))
+  (if (balanced-weight mobile) true false))
+
+"Only the selectors right-branch and branch-structure need to be changed."
