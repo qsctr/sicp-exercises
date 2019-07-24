@@ -476,3 +476,17 @@ each pair, not the cdr part."
   (if (balanced-weight mobile) true false))
 
 "Only the selectors right-branch and branch-structure need to be changed."
+
+; 30
+
+(define (square-tree-direct tree)
+  (cond ((null? tree) '())
+        ((pair? tree) (cons (square-tree-direct (car tree))
+                            (square-tree-direct (cdr tree))))
+        (else (square tree))))
+
+(define (square-tree-map tree)
+  (map (lambda (sub-tree) (if (pair? sub-tree)
+                              (square-tree-map sub-tree)
+                              (square sub-tree)))
+       tree))
