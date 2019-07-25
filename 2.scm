@@ -490,3 +490,87 @@ each pair, not the cdr part."
                               (square-tree-map sub-tree)
                               (square sub-tree)))
        tree))
+
+; 31
+
+(define (tree-map f tree)
+  (map (lambda (sub-tree) (if (pair? sub-tree)
+                              (tree-map f sub-tree)
+                              (f sub-tree)))
+       tree))
+
+; 32
+
+(define (subsets s)
+  (if (null? s)
+      (list '())
+      (let ((rest (subsets (cdr s))))
+        (append rest (map (lambda (x) (cons (car s) x))
+                          rest)))))
+
+"P({}) = {}.
+(P(S) where S /= {}) =
+  P(S \ {e}) U { T U {e} | T <- P(S \ {e}) } for any e in S."
+
+; 33
+
+(define (accumulate op initial sequence)
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (accumulate op initial (cdr sequence)))))
+
+(define (map-accumulate p sequence)
+  (accumulate (lambda (x y) (cons (p x) y)) '() sequence))
+
+(define (append-accumulate seq1 seq2)
+  (accumulate cons seq2 seq1))
+
+(define (length-accumulate sequence)
+  (accumulate (lambda (x y) (1+ y)) 0 sequence))
+
+; 34
+
+(define (horner-eval x coefficient-sequence)
+  (accumulate (lambda (this-coeff higher-terms)
+                (+ (* higher-terms x) this-coeff))
+              0
+              coefficient-sequence))
+
+; 35
+
+(define (count-leaves t)
+  (accumulate + 0 (map (lambda (x) 1) (fringe t))))
+
+; 36
+
+(define (accumulate-n op init seqs)
+  (if (null? (car seqs))
+      '()
+      (cons (accumulate op init (map car seqs))
+            (accumulate-n op init (map cdr seqs)))))
+
+; 37
+
+(define (dot-product v w)
+  (accumulate + 0 (map * v w)))
+
+(define (matrix-*-vector m v)
+  (map (lambda (r) (dot-product r v)) m))
+
+(define (transpose mat)
+  (accumulate-n cons '() mat))
+
+(define (matrix-*-matrix m n)
+  (let ((cols (transpose n)))
+    (map (lambda (r) (matrix-*-vector cols r)) m)))
+
+; 38
+
+3/2
+1/6
+'(1 (2 (3 ())))
+'(((() 1) 2) 3)
+
+"If op is associative then fold-right and fold-left will produce the same values
+for any sequence."
