@@ -283,12 +283,14 @@ expression."
 
 ; 18
 
+(define nil '())
+
 (define (reverse xs)
   (define (go xs ys)
     (if (null? xs)
         ys
         (go (cdr xs) (cons (car xs) ys))))
-  (go xs '()))
+  (go xs nil))
 
 ; 19
 
@@ -328,7 +330,7 @@ recursive calls are added together and addition is commutative."
 
 (define (square-list-direct items)
   (if (null? items)
-      '()
+      nil
       (cons (square (car items)) (square-list-direct (cdr items)))))
 
 (define (square-list-map items)
@@ -424,13 +426,13 @@ each pair, not the cdr part."
             (cons (deep-reverse (car xs))
                   ys))))
   (if (pair? x)
-      (go x '())
+      (go x nil)
       x))
 
 ; 28
 
 (define (fringe x)
-  (cond ((null? x) '())
+  (cond ((null? x) nil)
         ((pair? x) (append (fringe (car x))
                            (fringe (cdr x))))
         (else (list x))))
@@ -480,7 +482,7 @@ each pair, not the cdr part."
 ; 30
 
 (define (square-tree-direct tree)
-  (cond ((null? tree) '())
+  (cond ((null? tree) nil)
         ((pair? tree) (cons (square-tree-direct (car tree))
                             (square-tree-direct (cdr tree))))
         (else (square tree))))
@@ -503,7 +505,7 @@ each pair, not the cdr part."
 
 (define (subsets s)
   (if (null? s)
-      (list '())
+      (list nil)
       (let ((rest (subsets (cdr s))))
         (append rest (map (lambda (x) (cons (car s) x))
                           rest)))))
@@ -521,7 +523,7 @@ each pair, not the cdr part."
           (accumulate op initial (cdr sequence)))))
 
 (define (map-accumulate p sequence)
-  (accumulate (lambda (x y) (cons (p x) y)) '() sequence))
+  (accumulate (lambda (x y) (cons (p x) y)) nil sequence))
 
 (define (append-accumulate seq1 seq2)
   (accumulate cons seq2 seq1))
@@ -546,7 +548,7 @@ each pair, not the cdr part."
 
 (define (accumulate-n op init seqs)
   (if (null? (car seqs))
-      '()
+      nil
       (cons (accumulate op init (map car seqs))
             (accumulate-n op init (map cdr seqs)))))
 
@@ -559,7 +561,7 @@ each pair, not the cdr part."
   (map (lambda (r) (dot-product r v)) m))
 
 (define (transpose mat)
-  (accumulate-n cons '() mat))
+  (accumulate-n cons nil mat))
 
 (define (matrix-*-matrix m n)
   (let ((cols (transpose n)))
