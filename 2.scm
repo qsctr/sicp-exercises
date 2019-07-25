@@ -576,3 +576,122 @@ each pair, not the cdr part."
 
 "If op is associative then fold-right and fold-left will produce the same values
 for any sequence."
+
+; 39
+
+(define (reverse-fold-right sequence)
+  (fold-right
+    (lambda (x y) (append y (list x))) nil sequence))
+
+(define (reverse-fold-left sequence)
+  (fold-left
+    (lambda (x y) (append (list y) x)) nil sequence))
+
+; 40
+
+(define (enumerate-interval low high)
+  (if (> low high)
+      nil
+      (cons low
+            (enumerate-interval (+ low 1)
+                                high))))
+
+(define (flatmap proc seq)
+  (accumulate append nil (map proc seq)))
+
+(define (unique-pairs n)
+  (flatmap
+    (lambda (i)
+      (map (lambda (j) (list i j))
+           (enumerate-interval 1 (- i 1))))
+    (enumerate-interval 1 n)))
+
+(define (smallest-divisor n)
+  (find-divisor n 2))
+
+(define (find-divisor n test-divisor)
+  (cond ((> (square test-divisor) n) n)
+        ((divides? test-divisor n) test-divisor)
+        (else (find-divisor n (+ test-divisor 1)))))
+
+(define (divides? a b)
+  (= (remainder b a) 0))
+
+(define (prime? n)
+  (= n (smallest-divisor n)))
+
+(define (prime-sum? pair)
+  (prime? (+ (car pair) (cadr pair))))
+
+(define (make-pair-sum pair)
+  (list (car pair)
+        (cadr pair)
+        (+ (car pair) (cadr pair))))
+
+(define (prime-sum-pairs n)
+  (map make-pair-sum (filter prime-sum? (unique-pairs n))))
+
+; 41
+
+(define (remove-item item sequence)
+  (filter (lambda (x) (not (= x item)))
+          sequence))
+
+(define (triples-sum n s)
+  (filter (lambda (triple)
+            (= (accumulate + 0 triple) s))
+          (let ((one-to-n (enumerate-interval 1 n)))
+            (flatmap
+              (lambda (i)
+                (let ((one-to-n-without-i (remove-item i one-to-n)))
+                  (flatmap
+                    (lambda (j)
+                      (map (lambda (k) (list i j k))
+                           (remove-item j one-to-n-without-i)))
+                    one-to-n-without-i)))
+              one-to-n))))
+
+; 42
+
+(define (queens board-size)
+  (define (queen-cols k)
+    (if (= k 0)
+        (list empty-board)
+        (filter
+          (lambda (positions)
+            (safe? k positions))
+          (flatmap
+            (lambda (rest-of-queens)
+              (map (lambda (new-row)
+                     (adjoin-position new-row k rest-of-queens))
+                   (enumerate-interval 1 board-size)))
+            (queen-cols (- k 1))))))
+  (queen-cols board-size))
+
+(define empty-board nil)
+
+(define (adjoin-position new-row k rest-of-queens)
+  (cons (cons new-row k) rest-of-queens))
+
+(define (safe? k positions)
+  (define (find-row ps)
+    (cond ((null? ps) (error "safe?: Invalid column"))
+          ((= (cdar ps) k) (caar ps))
+          (else (find-row (cdr ps)))))
+  (let ((row (find-row positions)))
+    (define (check? ps)
+      (if (null? ps)
+          false
+          (or (and (not (= (cdar ps) k)) 
+                   (or (= (caar ps) row)
+                       (= (abs (- row (caar ps)))
+                          (abs (- k (cdar ps))))))
+              (check? (cdr ps)))))
+    (not (check? positions))))
+
+; 43
+
+"He is recalculating (queen-cols (- k 1)) each time he tests a new row for the
+k-th column."
+
+"T^8"
