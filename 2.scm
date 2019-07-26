@@ -695,3 +695,76 @@ for any sequence."
 k-th column."
 
 "T^8"
+
+; 44
+
+(define (up-split painter n)
+  (if (= n 0)
+      painter
+      (let ((smaller (up-split painter (- n 1))))
+        (below painter
+               (beside smaller smaller)))))
+
+; 45
+
+(define (split first second)
+  (define (go painter n)
+    (if (= n 0)
+        painter
+        (let ((smaller (go painter (- n 1))))
+          (first painter
+                 (second smaller smaller)))))
+  go)
+
+; 46
+
+(define (make-vect x y)
+  (cons x y))
+
+(define (xcor-vect v)
+  (car v))
+
+(define (ycor-vect v)
+  (cdr v))
+
+(define (binop-vect op)
+  (lambda (v1 v2)
+    (make-vect (op (xcor-vect v1) (xcor-vect v2))
+               (op (ycor-vect v1) (ycor-vect v2)))))
+
+(define add-vect (binop-vect +))
+(define sub-vect (binop-vect -))
+
+(define (scale-vect s v)
+  (make-vect (* s (xcor-vect v))
+             (* s (ycor-vect v))))
+
+; 47
+
+(define (make-frame-1 origin edge1 edge2)
+  (list origin edge1 edge2))
+
+(define (origin-frame-1 frame)
+  (car frame))
+
+(define (edge1-frame-1 frame)
+  (cadr frame))
+
+(define (edge2-frame-1 frame)
+  (caddr frame))
+
+(define (make-frame-2 origin edge1 edge2)
+  (cons origin (cons edge1 edge2)))
+
+(define (origin-frame-2 frame)
+  (car frame))
+
+(define (edge1-frame-2 frame)
+  (cadr frame))
+
+(define (edge2-frame-2 frame)
+  (cddr frame))
+
+; 48
+
+; Same as exercise 2
