@@ -768,3 +768,47 @@ k-th column."
 ; 48
 
 ; Same as exercise 2
+
+; 49
+
+(define (segments->painter segment-list)
+  (lambda (frame)
+    (for-each
+      (lambda (segment)
+        (draw-line
+          ((frame-coord-map frame) (start-segment segment))
+          ((frame-coord-map frame) (end-segment segment))))
+      segment-list)))
+
+(define (path vect1 vect2 . vects)
+  (define (go v1 v2 vs)
+    (if (null? vs)
+        (list (make-segment v1 v2))
+        (cons (make-segment v1 v2)
+              (go v2 (car vs) (cdr vs)))))
+  (go vect1 vect2 vects))
+
+(define outline
+  (segments->painter
+    (path (make-vect 0 0)
+          (make-vect 0 1)
+          (make-vect 1 1)
+          (make-vect 1 0)
+          (make-vect 0 0))))
+
+(define x-shape
+  (segments->painter
+    (list (make-segment (make-vect 0 0)
+                        (make-vect 1 1))
+          (make-segment (make-vect 0 1)
+                        (make-vect 1 0)))))
+
+(define diamond
+  (segments->painter
+    (path (make-vect 0 0.5)
+          (make-vect 0.5 1)
+          (make-vect 1 0.5)
+          (make-vect 0.5 0)
+          (make-vect 0 0.5))))
+
+; TODO: wave
