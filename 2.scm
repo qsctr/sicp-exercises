@@ -988,20 +988,20 @@ quote"
 
 ; 58a
 
-(define (make-sum-58a a1 a2)
+(define (make-sum-58 a1 a2)
   (cond ((=number? a1 0) a2)
         ((=number? a2 0) a1)
         ((and (number? a1) (number? a2)) (+ a1 a2))
         (else (list a1 '+ a2))))
 
-(define (make-product-58a m1 m2)
+(define (make-product-58 m1 m2)
   (cond ((or (=number? m1 0) (=number? m2 0)) 0)
         ((=number? m1 1) m2)
         ((=number? m2 1) m1)
         ((and (number? m1) (number? m2)) (* m1 m2))
         (else (list m1 '* m2))))
 
-(define (make-exponentiation-58a b n)
+(define (make-exponentiation-58 b n)
   (cond ((=number? n 0) 1)
         ((=number? n 1) b)
         ((and (number? b) (number? n)) (expt b n))
@@ -1028,17 +1028,97 @@ quote"
 (define (deriv-58a exp var)
   (cond ((number? exp) 0)
         ((variable? exp) (if (same-variable? exp var) 1 0))
-        ((sum-58a? exp) (make-sum-58a (deriv-58a (addend-58a exp) var)
-                                      (deriv-58a (augend-58a exp) var)))
+        ((sum-58a? exp) (make-sum-58 (deriv-58a (addend-58a exp) var)
+                                     (deriv-58a (augend-58a exp) var)))
         ((product-58a? exp)
-         (make-sum-58a (make-product-58a (multiplier-58a exp)
-                                         (deriv-58a (multiplicand-58a exp) var))
-                       (make-product-58a (deriv-58a (multiplier-58a exp) var)
-                                         (multiplicand-58a exp))))
+         (make-sum-58 (make-product-58 (multiplier-58a exp)
+                                       (deriv-58a (multiplicand-58a exp) var))
+                      (make-product-58 (deriv-58a (multiplier-58a exp) var)
+                                       (multiplicand-58a exp))))
         ((exponentiation-58a? exp)
-         (make-product-58a
-           (make-product-58a (exponent-58a exp)
-                             (make-exponentiation-58a (base-58a exp)
-                                                      (- (exponent-58a exp) 1)))
+         (make-product-58
+           (make-product-58 (exponent-58a exp)
+                            (make-exponentiation-58 (base-58a exp)
+                                                    (- (exponent-58a exp) 1)))
            (deriv-58a (base-58a exp) var)))
         (else (error "unknown expression type: DERIV-58A" exp))))
+
+; 58b
+
+(define order-of-operations
+  '(** * +))
+
+(define (lower-prec op1 op2)
+  (define (go ooo)
+    (cond ((eq? (car ooo) op1) op2)
+          ((eq? (car ooo) op2) op1)
+          (else (go (cdr ooo)))))
+  (if (eq? op1 op2)
+      op1
+      (go order-of-operations)))
+
+(define (min-prec-op exp)
+  (if (null? (cdddr exp))
+      (cadr exp)
+      (lower-prec (cadr exp) (min-prec-op (cddr exp)))))
+
+(define (operation-predicate op)
+  (lambda (x)
+    (and (pair? x) (eq? (min-prec-op x) op))))
+
+(define sum-58b? (operation-predicate '+))
+
+(define product-58b? (operation-predicate '*))
+
+(define exponentiation-58b? (operation-predicate '**))
+
+(define (left-arg op)
+  (define (go x single)
+    (if (eq? (cadr x) op)
+        (if single
+            (car x)
+            (list (car x)))
+        (cons (car x)
+              (cons (cadr x)
+                    (go (cddr x) false)))))
+  (lambda (x)
+    (go x true)))
+
+(define (right-arg op)
+  (define (go x)
+    (if (eq? (cadr x) op)
+        (if (null? (cdddr x))
+            (caddr x)
+            (cddr x))
+        (go (cddr x))))
+  go)
+
+(define addend-58b (left-arg '+))
+
+(define augend-58b (right-arg '+))
+
+(define multiplier-58b (left-arg '*))
+
+(define multiplicand-58b (right-arg '*))
+
+(define base-58b (left-arg '**))
+
+(define exponent-58b (right-arg '**))
+
+(define (deriv-58b exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp) (if (same-variable? exp var) 1 0))
+        ((sum-58b? exp) (make-sum-58 (deriv-58b (addend-58b exp) var)
+                                     (deriv-58b (augend-58b exp) var)))
+        ((product-58b? exp)
+         (make-sum-58 (make-product-58 (multiplier-58b exp)
+                                       (deriv-58b (multiplicand-58b exp) var))
+                      (make-product-58 (deriv-58b (multiplier-58b exp) var)
+                                       (multiplicand-58b exp))))
+        ((exponentiation-58b? exp)
+         (make-product-58
+           (make-product-58 (exponent-58b exp)
+                            (make-exponentiation-58 (base-58b exp)
+                                                    (- (exponent-58b exp) 1)))
+           (deriv-58b (base-58b exp) var)))
+        (else (error "unknown expression type: DERIV-58B" exp))))
