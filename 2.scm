@@ -852,3 +852,193 @@ k-th column."
 (define (below-alt painter1 painter2)
   (rotate270 (beside (rotate90 painter2)
                      (rotate90 painter1))))
+
+; 52
+
+; TODO: wave-modified
+
+(define (corner-split-modified painter n)
+  (if (= n 0)
+      painter
+      (beside (below painter
+                     (up-split painter (- n 1)))
+              (below (right-split painter (- n 1))
+                     (corner-split painter (- n 1))))))
+
+(define (square-limit-modified painter n)
+  ((square-of-four flip-vert rotate180 identity flip-horiz)
+   (corner-split painter n)))
+
+; 53
+
+"(a b c)"
+"((george))"
+"((y1 y2))"
+"(y1 y2)"
+"#f"
+"#f"
+"(red shoes blue socks)"
+
+; 54
+
+(define (equal-reimpl? a b)
+  (if (and (pair? a) (pair? b))
+      (and (equal-reimpl? (car a) (car b))
+           (equal-reimpl? (cdr a) (cdr b)))
+      (eq? a b)))
+
+; 55
+
+"The expression is evaluated as:
+(car ''abracadabra)
+(car '(quote abracadabra))
+quote"
+
+; 56
+
+(define (variable? x) (symbol? x))
+
+(define (same-variable? v1 v2)
+  (and (variable? v1) (variable? v2) (eq? v1 v2)))
+
+(define (make-sum a1 a2)
+  (cond ((=number? a1 0) a2)
+        ((=number? a2 0) a1)
+        ((and (number? a1) (number? a2)) (+ a1 a2))
+        (else (list '+ a1 a2))))
+
+(define (make-product m1 m2)
+  (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+        ((=number? m1 1) m2)
+        ((=number? m2 1) m1)
+        ((and (number? m1) (number? m2)) (* m1 m2))
+        (else (list '* m1 m2))))
+
+(define (=number? exp num) (and (number? exp) (= exp num)))
+
+(define (sum? x) (and (pair? x) (eq? (car x) '+)))
+
+(define (addend s) (cadr s))
+
+(define (augend s) (caddr s))
+
+(define (product? x) (and (pair? x) (eq? (car x) '*)))
+
+(define (multiplier p) (cadr p))
+
+(define (multiplicand p) (caddr p))
+
+(define (deriv-56 exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp) (if (same-variable? exp var) 1 0))
+        ((sum? exp) (make-sum (deriv-56 (addend exp) var)
+                              (deriv-56 (augend exp) var)))
+        ((product? exp)
+         (make-sum (make-product (multiplier exp)
+                                 (deriv-56 (multiplicand exp) var))
+                   (make-product (deriv-56 (multiplier exp) var)
+                                 (multiplicand exp))))
+        ((exponentiation? exp)
+         (make-product (make-product (exponent exp)
+                                     (make-exponentiation (base exp)
+                                                          (- (exponent exp) 1)))
+                       (deriv-56 (base exp) var)))
+        (else (error "unknown expression type: DERIV-56" exp))))
+
+(define (exponentiation? x) (and (pair? x) (eq? (car x) '**)))
+
+(define (base e) (cadr e))
+
+(define (exponent e) (caddr e))
+
+(define (make-exponentiation b n)
+  (cond ((=number? n 0) 1)
+        ((=number? n 1) b)
+        ((and (number? b) (number? n)) (expt b n))
+        (else (list '** b n))))
+
+; 57
+
+(define (augend-57 s)
+  (if (null? (cdddr s))
+      (caddr s)
+      (cons '+ (cddr s))))
+
+(define (multiplicand-57 p)
+  (if (null? (cdddr p))
+      (caddr p)
+      (cons '* (cddr p))))
+
+(define (deriv-57 exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp) (if (same-variable? exp var) 1 0))
+        ((sum? exp) (make-sum (deriv-57 (addend exp) var)
+                              (deriv-57 (augend-57 exp) var)))
+        ((product? exp)
+         (make-sum (make-product (multiplier exp)
+                                 (deriv-57 (multiplicand-57 exp) var))
+                   (make-product (deriv-57 (multiplier exp) var)
+                                 (multiplicand-57 exp))))
+        ((exponentiation? exp)
+         (make-product (make-product (exponent exp)
+                                     (make-exponentiation (base exp)
+                                                          (- (exponent exp) 1)))
+                       (deriv-57 (base exp) var)))
+        (else (error "unknown expression type: DERIV-57" exp))))
+
+; 58a
+
+(define (make-sum-58a a1 a2)
+  (cond ((=number? a1 0) a2)
+        ((=number? a2 0) a1)
+        ((and (number? a1) (number? a2)) (+ a1 a2))
+        (else (list a1 '+ a2))))
+
+(define (make-product-58a m1 m2)
+  (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+        ((=number? m1 1) m2)
+        ((=number? m2 1) m1)
+        ((and (number? m1) (number? m2)) (* m1 m2))
+        (else (list m1 '* m2))))
+
+(define (make-exponentiation-58a b n)
+  (cond ((=number? n 0) 1)
+        ((=number? n 1) b)
+        ((and (number? b) (number? n)) (expt b n))
+        (else (list b '** n))))
+
+(define (sum-58a? x) (and (pair? x) (eq? (cadr x) '+)))
+
+(define (addend-58a s) (car s))
+
+(define (augend-58a s) (caddr s))
+
+(define (product-58a? x) (and (pair? x) (eq? (cadr x) '*)))
+
+(define (multiplier-58a p) (car p))
+
+(define (multiplicand-58a p) (caddr p))
+
+(define (exponentiation-58a? x) (and (pair? x) (eq? (cadr x) '**)))
+
+(define (base-58a e) (car e))
+
+(define (exponent-58a e) (caddr e))
+
+(define (deriv-58a exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp) (if (same-variable? exp var) 1 0))
+        ((sum-58a? exp) (make-sum-58a (deriv-58a (addend-58a exp) var)
+                                      (deriv-58a (augend-58a exp) var)))
+        ((product-58a? exp)
+         (make-sum-58a (make-product-58a (multiplier-58a exp)
+                                         (deriv-58a (multiplicand-58a exp) var))
+                       (make-product-58a (deriv-58a (multiplier-58a exp) var)
+                                         (multiplicand-58a exp))))
+        ((exponentiation-58a? exp)
+         (make-product-58a
+           (make-product-58a (exponent-58a exp)
+                             (make-exponentiation-58a (base-58a exp)
+                                                      (- (exponent-58a exp) 1)))
+           (deriv-58a (base-58a exp) var)))
+        (else (error "unknown expression type: DERIV-58A" exp))))
