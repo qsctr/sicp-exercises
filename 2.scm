@@ -1122,3 +1122,154 @@ quote"
                                                     (- (exponent-58b exp) 1)))
            (deriv-58b (base-58b exp) var)))
         (else (error "unknown expression type: DERIV-58B" exp))))
+
+; 59
+
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((equal? x (car set)) true)
+        (else (element-of-set? x (cdr set)))))
+
+(define (union-set set1 set2)
+  (cond ((null? set1) set2)
+        ((element-of-set? (car set1) set2) (union-set (cdr set1) set2))
+        (else (cons (car set1) (union-set (cdr set1) set2)))))
+
+; 60
+
+(define (element-of-set-non-unique? x set)
+  (cond ((null? set) false)
+        ((equal? x (car set)) true)
+        (else (element-of-set-non-unique? x (cdr set)))))
+
+(define (adjoin-set-non-unique x set)
+  (cons x set))
+
+(define (union-set-non-unique set1 set2)
+  (append set1 set2))
+
+(define (intersection-set-non-unique set1 set2)
+  (cond ((or (null? set1) (null? set2)) '())
+        ((element-of-set-non-unique? (car set1) set2)
+         (cons (car set1) (intersection-set-non-unique (cdr set1) set2)))
+        (else (intersection-set-non-unique (cdr set1) set2))))
+
+"This representation is less space efficient compared to the non-duplicate
+representation, but it has the same asymptotic time complexity for the
+element-of-set operation (O(n)) and the intersection-set operation (O(n^2)),
+and lower time complexity for the adjoin-set operation (O(1)) and the union-set
+operation (O(n)). In reality, adjoin-set and union-set for the duplicate
+representation perform better than their non-duplicate counterparts, and
+element-of-set and intersection-set perform worse, or in the best case (when
+there are no duplicates) identical, since the presence of duplicates increases
+the number of elements to be iterated through."
+
+"This representation should be used when there are not a lot of duplicate
+elements (thus space usage will not be increased by much compared to the
+non-duplicate representation) but the operations of adjoin-set and union-set
+are used often."
+
+; 61
+
+(define (adjoin-set-ordered x set)
+  (cond ((null? set) (list x)) 
+        ((< x (car set)) (cons x set))
+        ((= x (car set)) set)
+        (else (cons (car set) (adjoin-set-ordered x (cdr set))))))
+
+; 62
+
+(define (union-set-ordered set1 set2)
+  (cond ((null? set1) set2)
+        ((null? set2) set1)
+        (else
+         (let ((x1 (car set1)) (x2 (car set2)))
+           (cond ((= x1 x2) (cons x1 (union-set-ordered (cdr set1) (cdr set2))))
+                 ((< x1 x2) (cons x1 (union-set-ordered (cdr set1) set2)))
+                 ((< x2 x1) (cons x2 (union-set-ordered set1 (cdr set2)))))))))
+
+; 63a
+
+"Yes"
+
+'(1 3 5 7 9 11)
+
+; 63b
+
+"No"
+
+"tree->list-2"
+
+; 64a
+
+"First, partial-tree calls itself to turn the first n/2 elements (the first half
+of the list) into the left subtree. Therefore, the first remaining element is
+the current entry. Everything after that (n/2 to n) is turned into the right
+subtree. These are then assembled together with make-tree. In the case that
+n = 0 it simply returns the empty tree."
+
+"    5
+    / \
+   /   \
+  1     9
+   \   / \
+    3 7   11
+"
+
+; 64b
+
+"O(n)"
+
+; 65
+
+(define (entry tree) (car tree))
+(define (left-branch tree) (cadr tree))
+(define (right-branch tree) (caddr tree))
+(define (make-tree entry left right)
+  (list entry left right))
+
+(define (tree->list-2 tree)
+  (define (copy-to-list tree result-list)
+    (if (null? tree)
+        result-list
+        (copy-to-list (left-branch tree)
+                      (cons (entry tree)
+                            (copy-to-list (right-branch tree)
+                                          result-list)))))
+  (copy-to-list tree '()))
+
+(define (list->tree elements)
+  (car (partial-tree elements (length elements))))
+
+(define (partial-tree elts n)
+  (if (= n 0)
+      (cons '() elts)
+      (let ((left-size (quotient (- n 1) 2)))
+        (let ((left-result (partial-tree elts left-size)))
+          (let ((left-tree (car left-result))
+                (non-left-elts (cdr left-result))
+                (right-size (- n (+ left-size 1))))
+            (let ((this-entry (car non-left-elts))
+                  (right-result (partial-tree (cdr non-left-elts)
+                                              right-size)))
+              (let ((right-tree (car right-result))
+                    (remaining-elts (cdr right-result)))
+                (cons (make-tree this-entry left-tree right-tree)
+                      remaining-elts))))))))
+
+(define (union-set-tree set1 set2)
+  (list->tree (union-set-ordered (tree->list-2 set1)
+                                 (tree->list-2 set2))))
+
+(define (intersection-set-ordered set1 set2)
+  (if (or (null? set1) (null? set2))
+      '()
+      (let ((x1 (car set1)) (x2 (car set2)))
+        (cond ((= x1 x2) (cons x1 (intersection-set-ordered (cdr set1)
+                                                            (cdr set2))))
+              ((< x1 x2) (intersection-set-ordered (cdr set1) set2))
+              ((< x2 x1) (intersection-set-ordered set1 (cdr set2)))))))
+
+(define (intersection-set-tree set1 set2)
+  (list->tree (intersection-set-ordered (tree->list-2 set1)
+                                        (tree->list-2 set2))))
