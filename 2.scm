@@ -1273,3 +1273,356 @@ n = 0 it simply returns the empty tree."
 (define (intersection-set-tree set1 set2)
   (list->tree (intersection-set-ordered (tree->list-2 set1)
                                         (tree->list-2 set2))))
+
+; 66
+
+(define (lookup-tree given-key set-of-records)
+  (if (null? set-of-records)
+      false
+      (let ((k (key (entry set-of-records))))
+        (cond ((< given-key k) (lookup-tree given-key
+                                            (left-branch set-of-records)))
+              ((> given-key k) (lookup-tree given-key
+                                            (right-branch set-of-records)))
+              (else (entry set-of-records))))))
+
+; 67
+
+(define (make-leaf symbol weight) (list 'leaf symbol weight))
+(define (leaf? object) (eq? (car object) 'leaf))
+(define (symbol-leaf x) (cadr x))
+(define (weight-leaf x) (caddr x))
+
+(define (make-code-tree left right)
+  (list left
+        right
+        (append (symbols left) (symbols right))
+        (+ (weight left) (weight right))))
+
+(define (left-branch tree) (car tree))
+(define (right-branch tree) (cadr tree))
+(define (symbols tree)
+  (if (leaf? tree)
+      (list (symbol-leaf tree))
+      (caddr tree)))
+(define (weight tree)
+  (if (leaf? tree)
+      (weight-leaf tree)
+      (cadddr tree)))
+
+(define (decode bits tree)
+  (define (decode-1 bits current-branch)
+    (if (null? bits)
+        '()
+        (let ((next-branch (choose-branch (car bits) current-branch)))
+          (if (leaf? next-branch)
+              (cons (symbol-leaf next-branch)
+                    (decode-1 (cdr bits) tree))
+              (decode-1 (cdr bits) next-branch)))))
+  (decode-1 bits tree))
+
+(define (choose-branch bit branch)
+  (cond ((= bit 0) (left-branch branch))
+        ((= bit 1) (right-branch branch))
+        (else (error "bad bit: CHOOSE-BRANCH" bit))))
+
+(define sample-tree
+  (make-code-tree (make-leaf 'A 4)
+                  (make-code-tree (make-leaf 'B 2)
+                                  (make-code-tree (make-leaf 'D 1)
+                                                  (make-leaf 'C 1)))))
+(define sample-message '(0 1 1 0 0 1 0 1 0 1 1 1 0))
+
+(decode sample-message sample-tree) ; => ADABBCA
+
+; 68
+
+(define (encode message tree)
+  (if (null? message)
+      '()
+      (append (encode-symbol (car message) tree)
+              (encode (cdr message) tree))))
+
+(define (encode-symbol x tree)
+  (cond ((not (element-of-set? x (symbols tree)))
+         (error "bad symbol: ENCODE-SYMBOL" x)) 
+        ((leaf? tree) '())
+        ((element-of-set? x (symbols (left-branch tree)))
+         (cons 0 (encode-symbol x (left-branch tree))))
+        ((element-of-set? x (symbols (right-branch tree)))
+         (cons 1 (encode-symbol x (right-branch tree))))))
+
+; 69
+
+(define (adjoin-set-weighted x set)
+  (cond ((null? set) (list x))
+        ((< (weight x) (weight (car set))) (cons x set))
+        (else (cons (car set) (adjoin-set-weighted x (cdr set))))))
+
+(define (make-leaf-set pairs)
+  (if (null? pairs)
+      '()
+      (let ((pair (car pairs)))
+        (adjoin-set-weighted (make-leaf (car pair) (cadr pair))
+                             (make-leaf-set (cdr pairs))))))
+
+(define (generate-huffman-tree pairs)
+  (successive-merge (make-leaf-set pairs)))
+
+(define (successive-merge nodes)
+  (if (null? (cdr nodes))
+      (car nodes)
+      (successive-merge (adjoin-set-weighted (make-code-tree (car nodes)
+                                                             (cadr nodes))
+                                             (cddr nodes)))))
+
+; 70
+
+(define rock-song-alphabet
+  '((A 2) (GET 2) (SHA 3) (WAH 1)
+    (BOOM 1) (JOB 2) (NA 16) (YIP 9)))
+
+(define song
+  '(Get a job
+    Sha na na na na na na na na
+    Get a job
+    Sha na na na na na na na na
+    Wah yip yip yip yip yip yip yip yip yip
+    Sha boom))
+
+(define song-code
+  (encode song (generate-huffman-tree rock-song-alphabet)))
+
+(length song-code) ; => 84
+
+(* (/ (log (length rock-song-alphabet)) (log 2)) (length song)) ; => 108
+
+; 71
+
+(define (e71-tree n)
+  (generate-huffman-tree (map (lambda (x) (list x (expt 2 (- x 1))))
+                              (enumerate-interval 1 n))))
+
+(e71-tree 5)
+"
+  .
+ / \
+16  .
+   / \
+  8   .
+     / \
+    4   .
+       / \
+      2   1
+"
+
+(e71-tree 10)
+"
+   .
+  / \
+512  .
+    / \
+  256  .
+      / \
+    128  .
+        / \
+       64  .
+          / \
+         32  .
+            / \
+           16  .
+              / \
+             8   .
+                / \
+               4   .
+                  / \
+                 2   1
+"
+
+"1"
+
+"n - 1"
+
+; 72
+
+"general: O(n^2)"
+"most frequent: O(n)"
+"least frequent: O(n^2)"
+
+; 73a
+
+"The derivative rules for arithmetic operations were moved elsewhere and assumed
+to be installed into the table. If the expression is an arithmetic operation,
+the derivative operation for that operator is selected in the dispatch table and
+applied to the operands. number? and variable? cannot be in the table since
+numbers and variables are not in list form (they are single values only, not
+operators and operands)."
+
+; 73b
+
+(define (install-sum-deriv)
+  (put 'deriv '+
+    (lambda (args var)
+      (let ((addend (car args))
+            (augend (cadr args)))
+        (make-sum (deriv addend var)
+                  (deriv augend var)))))
+  'done)
+
+(define (install-product-deriv)
+  (put 'deriv '*
+    (lambda (args var)
+      (let ((multiplier (car args))
+            (multiplicand (cadr args)))
+        (make-sum (make-product multiplier (deriv multiplicand var))
+                  (make-product (deriv multiplier var) multiplicand)))))
+  'done)
+
+; 73c
+
+(define (install-exponent-deriv)
+  (put 'deriv '**
+    (lambda (args var)
+      (let ((base (car args))
+            (exponent (cadr args)))
+        (make-product (make-product exponent
+                                    (make-exponentiation base (- exponent 1)))
+                      (deriv base var)))))
+  'done)
+
+; 73d
+
+"Instead of (put 'deriv <operator> <procedure>) it would be (put <operator>
+'deriv <procedure>)."
+
+; 74a
+
+(define (get-record employee-name file)
+  ((get 'get-record (file-type file)) employee-name (file-contents file)))
+
+"Each file should have a type tag accessible with the selector procedure
+'file-type' and contents accessible with the selector procedure
+'file-contents'. There should be an entry of 'get-record with the file type in
+the dispatch table providing the implementation of get-record for that file
+type, which takes the employee name and the file contents as arguments."
+
+; 74b
+
+(define (get-salary employee-record)
+  ((get 'access-record
+        (record-type employee-record)) 'salary
+                                       (record-contents employee-record)))
+
+"Each record should have a type tag accessible with the selector procedure
+'record-type' and contents accessible with the selector procedure
+'record-contents'. There should be an entry of 'access-record with the record
+type in the dispatch table providing a procedure which returns the value of the
+entry with a given key in the given contents of a record of that type."
+
+; 74c
+
+(define (find-employee-record employee-name files)
+  (and (not (null? files))
+       (or (get-record employee-name (car files))
+           (find-employee-record employee-name (cdr files)))))
+
+; 74d
+
+"The new files and records need to be attached with tags to indicate their
+types. Also, procedures need to be installed into the dispatch table to handle
+the new file and record types."
+
+; 75
+
+(define (make-from-mag-ang r a)
+  (define (dispatch op)
+    (cond ((eq? op 'magnitude) r)
+          ((eq? op 'angle) a)
+          ((eq? op 'real-part) (* r (cos a)))
+          ((eq? op 'imag-part) (* r (sin a)))
+          (else (error "Unknown op: MAKE-FROM-MAG-ANG" op))))
+  dispatch)
+
+; 76
+
+"To add new types to generic operations with explicit dispatch, the procedure
+for each operation needs to be modified to handle the new types."
+"To add new operations to generic operations with explicit dispatch, new
+procedures need to be added for the new operations which handle all existing
+types."
+"To add new types to generic operations with data-directed style, new procedures
+need to be registered in the dispatch table which handle the new types."
+"To add new operations to generic operations with data-directed style, new
+procedures for the new operations need to be registered in the dispatch table
+which handle all existing types."
+"To add new types to generic operations with message-passing style, new
+constructors need to be added for the new types which handle all existing
+operations."
+"To add new operations to generic operations with message-passing style, the
+constructor for each type needs to be modified to handle the new operations."
+
+"For a system in which new types must often be added, message-passing style
+would be most appropriate."
+"For a system in which new operations must often be added, explicit dispatch
+would be most appropriate."
+
+; 77
+
+"The implementation of 'real-part for '(complex) is defined as the procedure
+real-part, so that when real-part is called with an object with type 'complex,
+its tag is removed and its contents (which still has the 'rectangular or 'polar
+tag) are passed to real-part again, which then dispatches on the type of complex
+number."
+
+'((magnitude z)
+  (magnitude '(complex rectangular 3 . 4))
+  (apply-generic 'magnitude '(complex rectangular 3 . 4))
+  (magnitude '(rectangular 3 . 4))
+  (apply-generic 'magnitude '(rectangular 3 . 4))
+  (magnitude '(3 . 4)) ; magnitude from rectangular package
+  (sqrt (+ (square 3) (square 4)))
+  5)
+
+"2 times
+magnitude (generic version)
+magnitude (rectangular version)"
+
+; 78
+
+(define (attach-tag type-tag contents)
+  (if (eq? type-tag 'scheme-number)
+      contents
+      (cons type-tag contents)))
+
+(define (type-tag datum)
+  (cond ((pair? datum) (car datum))
+        ((number? datum) 'scheme-number)
+        (else (error "Bad tagged datum: TYPE-TAG" datum))))
+
+(define (contents datum)
+  (cond ((pair? datum) (cdr datum))
+        ((number? datum) datum)
+        (else (error "Bad tagged datum: CONTENTS" datum))))
+
+; 79
+
+(define (install-equ?-operation)
+  (put 'equ? '(scheme-number scheme-number) =)
+  (define (both-equal f g)
+    (lambda (x y) (and (= (f x) (f y)) (= (g x) (g y)))))
+  (put 'equ? '(rational rational) (both-equal numer denom))
+  (put 'equ? '(complex complex) (both-equal real-part imag-part))
+  'done)
+
+(define (equ? x y) (apply-generic 'equ? x y))
+
+; 80
+
+(define (install-=zero?-operation)
+  (put '=zero? '(scheme-number) zero?)
+  (put '=zero? '(rational) (lambda (x) (zero? (numer x))))
+  (put '=zero? '(complex) (lambda (x) (and (zero? (real-part x))
+                                           (zero? (imag-part x)))))
+  'done)
+
+(define (=zero? x) (apply-generic '=zero? x))
