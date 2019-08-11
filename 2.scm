@@ -1626,3 +1626,169 @@ magnitude (rectangular version)"
   'done)
 
 (define (=zero? x) (apply-generic '=zero? x))
+
+; 81a
+
+"This would result in infinite recursion since apply-generic effectively calls
+itself with the same set of types again."
+
+; 81b
+
+"The current behavior of apply-generic is correct; however, it does unneeded
+computation by checking the coercion table for coercions to the same type when
+the arguments have the same type."
+
+; 81c
+
+(define (apply-generic op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (define (fail)
+        (error "No method for these types" (list op type-tags)))
+      (if proc
+          (apply proc (map contents args))
+          (if (= (length args) 2)
+              (let ((type1 (car type-tags))
+                    (type2 (cadr type-tags)))
+                (if (not (eq? type1 type2))
+                    (let ((t1->t2 (get-coercion type1 type2))
+                          (t2->t1 (get-coercion type2 type1))
+                          (a1 (car args))
+                          (a2 (cadr args)))
+                      (cond ((t1->t2) (apply-generic op (t1->t2 a1) a2))
+                            ((t2->t1) (apply-generic op a1 (t2->t1 a2)))
+                            (else (fail))))
+                    (fail)))
+              (fail))))))
+
+; 82
+
+(define (apply-generic-multi-coerce op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (define (try-apply-coerce types)
+        (if (null? types)
+            (error "No method for these types" (list op type-tags))
+            (let ((target-type (car types)))
+              (define (get-coercions other-types)
+                (define (cons-to-result-maybe coercion)
+                  (let ((result (get-coercions (cdr other-types))))
+                    (and result (cons coercion result))))
+                (cond ((null? other-types) '())
+                      ((eq? (car other-types) target-type)
+                       (cons-to-result-maybe (lambda (x) x)))
+                      (else (let ((coercion (get-coercion (car other-types)
+                                                          target-type)))
+                              (and coercion
+                                   (cons-to-result-maybe coercion))))))
+              (let ((coercions (get-coercions type-tags)))
+                (if coercions
+                    (apply apply-generic-multi-coerce
+                           (cons op (map (lambda (f x) (f x)) coercions args)))
+                    (try-apply-coerce (cdr types)))))))
+      (if proc
+          (apply proc (map contents args))
+          (try-apply-coerce type-tags)))))
+
+"An example where this does not work is if there is some generic procedure that
+works on arguments of type a and b respectively but is supplied arguments of
+type b and a."
+
+; 83
+
+(define (install-raise-operation)
+  (put 'raise '(integer)
+    (lambda (x) (make-rational x 1)))
+  (put 'raise '(rational)
+    (lambda (x) (make-real (/ (exact->inexact (numer x)) (denom x)))))
+  (put 'raise '(real)
+    (lambda (x) (make-complex-from-real-imag x 0)))
+  'done)
+
+(define (raise x) (apply-generic 'raise x))
+
+; 84
+
+(define (apply-generic-raise op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (define (fail)
+        (error "No method for these types" (list op type-tags)))
+      (if proc
+          (apply proc (map contents args))
+          (if (= (length args) 2)
+              (let ((type1 (car type-tags))
+                    (type2 (cadr type-tags)))
+                (define (try-raise a1 a2)
+                  (let ((t1 (type-tag a1))
+                        (t2 (type-tag a2)))
+                    (if (eq? t1 t2)
+                        a1
+                        (let ((raise1 (get 'raise (list t1))))
+                          (and raise1 (try-raise (raise1 a1) a2))))))    
+                (if (not (eq? type1 type2))
+                    (let ((a1 (car args))
+                          (a2 (cadr args)))
+                      (let ((raised-a1 (try-raise a1 a2)))
+                        (if raised-a1
+                            (apply-generic-raise op raised-a1 a2)
+                            (let ((raised-a2 (try-raise a2 a1)))
+                              (if raised-a2
+                                  (apply-generic-raise op a1 raised-a2)
+                                  (fail))))))
+                    (fail)))
+              (fail))))))
+
+; 85
+
+(define (install-project-operation)
+  (put 'project '(complex) real-part)
+  (put 'project '(real) round)
+  (put 'project '(rational) round)
+  'done)
+
+(define (project x) (apply-generic 'project x))
+
+(define (drop x)
+  (let ((type (type-tag x)))
+    (let ((project-x (get 'project (list type))))
+      (if project-x
+          (let ((projected (project-x x)))
+            (define (raise-to-type y)
+              (if (eq? (type-tag y) type)
+                  y
+                  (raise-to-type (raise y))))
+            (if (equ? (raise-to-type projected) x)
+                (drop projected)
+                x))
+          x))))
+
+(define (apply-generic-raise-drop op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (define (fail)
+        (error "No method for these types" (list op type-tags)))
+      (if proc
+          (drop (apply proc (map contents args)))
+          (if (= (length args) 2)
+              (let ((type1 (car type-tags))
+                    (type2 (cadr type-tags)))
+                (define (try-raise a1 a2)
+                  (let ((t1 (type-tag a1))
+                        (t2 (type-tag a2)))
+                    (if (eq? t1 t2)
+                        a1
+                        (let ((raise1 (get 'raise (list t1))))
+                          (and raise1 (try-raise (raise1 a1) a2))))))    
+                (if (not (eq? type1 type2))
+                    (let ((a1 (car args))
+                          (a2 (cadr args)))
+                      (let ((raised-a1 (try-raise a1 a2)))
+                        (if raised-a1
+                            (apply-generic-raise-drop op raised-a1 a2)
+                            (let ((raised-a2 (try-raise a2 a1)))
+                              (if raised-a2
+                                  (apply-generic-raise-drop op a1 raised-a2)
+                                  (fail))))))
+                    (fail)))
+              (fail))))))
