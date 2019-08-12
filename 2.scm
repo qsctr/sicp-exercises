@@ -1792,3 +1792,136 @@ type b and a."
                                   (fail))))))
                     (fail)))
               (fail))))))
+
+; 86
+
+(define (install-generic-rectangular-package)
+
+  (define (real-part z) (car z))
+  (define (imag-part z) (cdr z))
+  (define (make-from-real-imag x y) (cons x y))
+  (define (magnitude z)
+    (square-root (add (square-generic (real-part z))
+                      (square-generic (imag-part z)))))
+  (define (angle z)
+    (arctangent (imag-part z) (real-part z)))
+  (define (make-from-mag-ang r a)
+    (cons (mul r (cosine a)) (mul r (sine a))))
+
+  (define (tag x) (attach-tag 'rectangular x))
+  (put 'real-part '(rectangular) real-part)
+  (put 'imag-part '(rectangular) imag-part)
+  (put 'magnitude '(rectangular) magnitude)
+  (put 'angle '(rectangular) angle)
+  (put 'make-from-real-imag 'rectangular
+       (lambda (x y) (tag (make-from-real-imag x y))))
+  (put 'make-from-mag-ang 'rectangular
+       (lambda (r a) (tag (make-from-mag-ang r a))))
+
+  'done)
+
+(define (install-generic-polar-package)
+
+  (define (magnitude z) (car z))
+  (define (angle z) (cdr z))
+  (define (make-from-mag-ang r a) (cons r a))
+  (define (real-part z) (mul (magnitude z) (cosine (angle z))))
+  (define (imag-part z) (mul (magnitude z) (sine (angle z))))
+  (define (make-from-real-imag x y)
+    (cons (square-root (add (square-generic x) (square-generic y)))
+          (arctangent y x)))
+
+  (define (tag x) (attach-tag 'polar x))
+  (put 'real-part '(polar) real-part)
+  (put 'imag-part '(polar) imag-part)
+  (put 'magnitude '(polar) magnitude)
+  (put 'angle '(polar) angle)
+  (put 'make-from-real-imag 'polar
+       (lambda (x y) (tag (make-from-real-imag x y))))
+  (put 'make-from-mag-ang 'polar
+       (lambda (r a) (tag (make-from-mag-ang r a))))
+
+  'done)
+
+(define (install-generic-complex-package)
+
+  (define (make-from-real-imag x y)
+    ((get 'make-from-real-imag 'rectangular) x y))
+  (define (make-from-mag-ang r a)
+    ((get 'make-from-mag-ang 'polar) r a))
+
+  (define (add-complex z1 z2)
+    (make-from-real-imag (add (real-part z1) (real-part z2))
+                         (add (imag-part z1) (imag-part z2))))
+  (define (sub-complex z1 z2)
+    (make-from-real-imag (sub (real-part z1) (real-part z2))
+                         (sub (imag-part z1) (imag-part z2))))
+  (define (mul-complex z1 z2)
+    (make-from-mag-ang (mul (magnitude z1) (magnitude z2))
+                       (add (angle z1) (angle z2))))
+  (define (div-complex z1 z2)
+    (make-from-mag-ang (div (magnitude z1) (magnitude z2))
+                       (sub (angle z1) (angle z2))))
+
+  (define (tag z) (attach-tag 'complex z))
+  (put 'add '(complex complex)
+       (lambda (z1 z2) (tag (add-complex z1 z2))))
+  (put 'sub '(complex complex)
+       (lambda (z1 z2) (tag (sub-complex z1 z2))))
+  (put 'mul '(complex complex)
+       (lambda (z1 z2) (tag (mul-complex z1 z2))))
+  (put 'div '(complex complex)
+       (lambda (z1 z2) (tag (div-complex z1 z2))))
+  (put 'make-from-real-imag 'complex
+       (lambda (x y) (tag (make-from-real-imag x y))))
+  (put 'make-from-mag-ang 'complex
+       (lambda (x y) (tag (make-from-mag-ang r a))))
+
+  'done)
+
+(define (install-sine-operation)
+  (put 'sine '(scheme-number)
+       (lambda (x) (make-scheme-number (sin x))))
+  (put 'sine '(rational)
+       (lambda (x) (make-rational (sin (/ (numer x) (denom x))) 1)))
+  'done)
+
+(define (sine x) (apply-generic 'sine x))
+
+(define (install-cosine-operation)
+  (put 'cosine '(scheme-number)
+       (lambda (x) (make-scheme-number (cos x))))
+  (put 'cosine '(rational)
+       (lambda (x) (make-rational (cos (/ (numer x) (denom x))) 1)))
+  'done)
+
+(define (cosine x) (apply-generic 'cosine x))
+
+(define (install-arctangent-operation)
+  (put 'arctangent '(scheme-number scheme-number)
+       (lambda (y x) (make-scheme-number (atan y x))))
+  (put 'arctangent '(rational rational)
+       (lambda (y x) (make-rational (let ((quot (div-rat y x)))
+                                      (atan (numer quot) (denom quot)))
+                                    1)))
+  'done)
+
+(define (arctangent y x) (apply-generic 'arctangent y x))
+
+(define (install-square-generic-operation)
+  (put 'square-generic '(scheme-number)
+       (lambda (x) (make-scheme-number (square x))))
+  (put 'square-generic '(rational)
+       (lambda (x) (make-rational (square (numer x)) (square (denom x)))))
+  'done)
+
+(define (square-generic x) (apply-generic 'square-generic x))
+
+(define (install-square-root-operation)
+  (put 'square-root '(scheme-number)
+       (lambda (x) (make-scheme-number (sqrt x))))
+  (put 'square-root '(rational)
+       (lambda (x) (make-rational (sqrt (numer x)) (sqrt (denom x)))))
+  'done)
+
+(define (square-root x) (apply-generic 'square-root x))
