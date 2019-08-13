@@ -1925,3 +1925,230 @@ type b and a."
   'done)
 
 (define (square-root x) (apply-generic 'square-root x))
+
+; 87
+
+(define (install-=zero?-polynomial)
+  (put '=zero? '(polynomial) empty-termlist?)
+  'done)
+
+; 88
+
+(define (install-negate-operation)
+  (put 'negate '(scheme-number) -)
+  (put 'negate '(rational)
+       (lambda (x) (make-rational (- (numer x)) (denom x))))
+  (put 'negate '(complex)
+       (lambda (x) (make-from-real-imag (- (real-part x)) (- (imag-part x)))))
+  (put 'negate '(polynomial)
+       (lambda (p) (make-polynomial (variable p)
+                                    (map-coeff negate (term-list p)))))
+  (define (map-coeff f terms)
+    (if (empty-termlist? terms)
+        (the-empty-termlist)
+        (let ((term (first-term terms)))
+          (adjoin-term (make-term (order term) (negate (coeff term)))
+                       (rest-terms terms)))))
+  'done)
+
+(define (negate x) (apply-generic 'negate x))
+
+(define (install-sub-polynomial)
+  (put 'sub '(polynomial polynomial)
+       (lambda (p1 p2) (attach-tag 'polynomial (add-poly p1 (negate-poly p2)))))
+  'done)
+
+; 89
+
+(define (adjoin-term-dense term term-list)
+  (define (go terms len)
+    (if (= (order term) len)
+        (cons (coeff term) terms)
+        (go (cons 0 terms) (1+ len))))
+  (if (=zero? (coeff term))
+      term-list
+      (go term-list (length term-list))))
+
+(define (the-empty-termlist-dense) '())
+
+(define (first-term-dense term-list)
+  (if (=zero? (car term-list))
+      (first-term-dense (cdr term-list))
+      (make-term (length (cdr term-list)) (car term-list))))
+
+(define (rest-terms-dense term-list) (cdr term-list))
+
+(define (empty-termlist-dense? term-list) (null? term-list))
+
+; 90
+
+(define (install-term-package)
+
+  (define (make-term order coeff) (list order coeff))
+  (define (order term) (car term))
+  (define (coeff term) (cadr term))
+  
+  (define (tag x) (attach-tag 'term x))
+  (put 'order 'term order)
+  (put 'coeff 'term coeff)
+  (put 'make 'term
+       (lambda (order coeff) (tag (make-term order coeff))))
+
+  'done)
+
+(define (order term) (apply-generic 'order term))
+(define (coeff term) (apply-generic 'coeff term))
+
+(define (make-term order coeff)
+  ((get 'make 'term) order coeff))
+
+(define (install-sparse-package)
+
+  (define (adjoin-term term term-list)
+    (if (=zero? (coeff term))
+        term-list
+        (cons term term-list)))
+  (define (the-empty-termlist) '())
+  (define (first-term term-list) (car term-list))
+  (define (rest-terms term-list) (cdr term-list))
+  (define (empty-termlist? term-list) (null? term-list))
+
+  (define (tag x) (attach-tag 'sparse x))
+  (put 'adjoin-term '(term sparse)
+       (lambda (term term-list) (tag (adjoin-term term term-list))))
+  (put 'the-empty-termlist 'sparse
+       (lambda () (tag (the-empty-termlist))))
+  (put 'first-term 'sparse first-term)
+  (put 'rest-terms 'sparse
+       (lambda (term-list) (tag (rest-terms term-list))))
+  (put 'empty-termlist? 'sparse empty-termlist?)
+
+  'done)
+
+(define (install-dense-package)
+
+  (define (adjoin-term term term-list)
+    (define (go terms len)
+      (if (= (order term) len)
+          (cons (coeff term) terms)
+          (go (cons 0 terms) (1+ len))))
+    (if (=zero? (coeff term))
+        term-list
+        (go term-list (length term-list))))
+  (define (the-empty-termlist) '())
+  (define (first-term term-list)
+    (if (=zero? (car term-list))
+        (first-term-dense (cdr term-list))
+        (make-term (length (cdr term-list)) (car term-list))))
+  (define (rest-terms term-list) (cdr term-list))
+  (define (empty-termlist? term-list) (null? term-list))
+  
+  (define (tag x) (attach-tag 'dense x))
+  (put 'adjoin-term '(term dense)
+       (lambda (term term-list) (tag (adjoin-term term term-list))))
+  (put 'the-empty-termlist 'dense
+       (lambda () (tag (the-empty-termlist))))
+  (put 'first-term 'dense first-term)
+  (put 'rest-terms 'dense
+       (lambda (term-list) (tag (rest-terms term-list))))
+  (put 'empty-termlist? 'dense empty-termlist?)
+
+  'done)
+
+(define (adjoin-term term term-list)
+  (apply-generic 'adjoin-term term term-list))
+(define (the-empty-termlist type)
+  ((get 'the-empty-termlist type)))
+(define (first-term term-list)
+  (apply-generic 'first-term term-list))
+(define (rest-terms term-list)
+  (apply-generic 'rest-terms term-list))
+(define (empty-termlist? term-list)
+  (apply-generic 'empty-termlist? term-list))
+
+(define (install-generic-polynomial-package)
+
+  (define (make-poly variable term-list) (cons variable term-list))
+  (define (variable p) (car p))
+  (define (term-list p) (cdr p))
+
+  (define (add-poly p1 p2)
+    (if (same-variable? (variable p1) (variable p2))
+        (make-poly (variable p1)
+                   (add-terms (term-list p1) (term-list p2)))
+        (error "Polys not in same var: ADD-POLY" (list p1 p2))))
+  (define (add-terms l1 l2)
+    (cond ((empty-termlist? l1) l2)
+          ((empty-termlist? l2) l1)
+          (else
+           (let ((t1 (first-term l1))
+                 (t2 (first-term l2)))
+             (cond ((> (order t1) (order t2))
+                    (adjoin-term t1 (add-terms (rest-terms l1) l2)))
+                   ((< (order t1) (order t2))
+                    (adjoin-term t2 (add-terms l1 (rest-terms l2))))
+                   (else
+                    (adjoin-term (make-term (order t1)
+                                            (add (coeff t1) (coeff t2)))
+                                 (add-terms (rest-terms l1)
+                                            (rest-terms l2)))))))))
+  (define (mul-poly p1 p2)
+    (if (same-variable? (variable p1) (variable p2))
+        (make-poly (variable p1)
+                   (mul-terms (term-list p1) (term-list p2)))
+        (error "Polys not in same var: MUL-POLY" (list p1 p2))))
+  (define (mul-terms l1 l2)
+    (let ((result-type (if (or (eq? 'sparse (type-tag l1))
+                               (eq? 'sparse (type-tag l2)))
+                           'sparse
+                           'dense)))
+      (define (mul-term-by-all-terms t1 l)
+        (if (empty-termlist? l)
+            (the-empty-termlist result-type)
+            (let ((t2 (first-term l)))
+              (adjoin-term (make-term (+ (order t1) (order t2))
+                                      (mul (coeff t1) (coeff t2)))
+                           (mul-term-by-all-terms t1 (rest-terms l))))))
+      (if (empty-termlist? l1)
+          (the-empty-termlist result-type)
+          (add-terms (mul-term-by-all-terms (first-term l1) l2)
+                     (mul-terms (rest-terms l1) l2)))))
+
+  (define (tag p) (attach-tag 'polynomial p))
+  (put 'add '(polynomial polynomial)
+       (lambda (p1 p2) (tag (add-poly p1 p2))))
+  (put 'mul '(polynomial polynomial)
+       (lambda (p1 p2) (tag (mul-poly p1 p2))))
+  (put 'make 'polynomial
+       (lambda (var terms) (tag (make-poly var terms))))
+
+  'done)
+
+(define (make-polynomial var terms)
+  ((get 'make 'polynomial) var terms))
+
+; 91
+
+(define (div-terms l1 l2)
+  (if (empty-termlist? l1)
+      (list (the-empty-termlist) (the-empty-termlist))
+      (let ((t1 (first-term l1))
+            (t2 (first-term l2)))
+        (if (> (order t2) (order t1))
+            (list (the-empty-termlist) l1)
+            (let ((new-c (div (coeff t1) (coeff t2)))
+                  (new-o (- (order t1) (order t2))))
+              (let ((rest-of-result
+                     (div-terms (sub l1 (mul-term-by-all-terms (make-term new-o
+                                                                          new-c)
+                                                               l2))
+                                l2)))
+                (list (adjoin-term (make-term new-o new-c (car rest-of-result)))
+                      (cadr rest-of-result))))))))
+
+(define (div-poly p1 p2)
+  (if (same-variable? (variable p1) (variable p2))
+      (let ((result (div-terms (term-list p1) (term-list p2))))
+        (list (make-poly (variable p1) (car result))
+              (make-poly (variable p1) (cadr result))))
+      (error "Polys not in same var: DIV-POLY" (list p1 p2))))
