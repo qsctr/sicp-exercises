@@ -1934,6 +1934,13 @@ type b and a."
 
 ; 88
 
+(define (map-coeff f terms)
+  (if (empty-termlist? terms)
+      (the-empty-termlist)
+      (let ((term (first-term terms)))
+        (adjoin-term (make-term (order term) (f (coeff term))
+                      (rest-terms terms))))))
+
 (define (install-negate-operation)
   (put 'negate '(scheme-number) -)
   (put 'negate '(rational)
@@ -1943,12 +1950,6 @@ type b and a."
   (put 'negate '(polynomial)
        (lambda (p) (make-polynomial (variable p)
                                     (map-coeff negate (term-list p)))))
-  (define (map-coeff f terms)
-    (if (empty-termlist? terms)
-        (the-empty-termlist)
-        (let ((term (first-term terms)))
-          (adjoin-term (make-term (order term) (negate (coeff term)))
-                       (rest-terms terms)))))
   'done)
 
 (define (negate x) (apply-generic 'negate x))
