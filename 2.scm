@@ -1449,6 +1449,9 @@ n = 0 it simply returns the empty tree."
 "most frequent: O(n)"
 "least frequent: O(n^2)"
 
+;; NOTE: solutions from here onwards haven't been tested for correctness since
+;; the put/get operations have not been implemented
+
 ; 73a
 
 "The derivative rules for arithmetic operations were moved elsewhere and assumed
