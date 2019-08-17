@@ -2156,3 +2156,83 @@ type b and a."
         (list (make-poly (variable p1) (car result))
               (make-poly (variable p1) (cadr result))))
       (error "Polys not in same var: DIV-POLY" (list p1 p2))))
+
+; 92
+
+; (define (any-term p terms)
+;   (if (empty-termlist? terms)
+;       false
+;       (or (p (first-term terms))
+;           (any-term p (rest-terms terms)))))
+
+; (define (has-variable-poly var poly)
+;   (or (same-variable? var (variable poly))
+;       (any-term (lambda (term) (has-variable-generic var (coeff term)))
+;                 (term-list poly))))
+
+; (define (has-variable-generic var x)
+;   (if (eq? (type-tag x) 'polynomial)
+;       (has-variable-poly var (contents x))
+;       false))
+
+; (define (convert-terms terms)
+;   (if (empty-termlist? terms)
+;       (the-empty-termlist)
+;       (add-terms (convert-term (first-term terms))
+;                  (rest-terms terms))))
+
+; (define (convert-term var term)
+;   (if (eq? (type-tag (coeff term)) 'polynomial)
+;       (let ((poly (contents (coeff term))))
+;         (if (has-variable-poly var poly)
+;             (convert-terms (map-coeff (lambda (t) (mul t var))
+;                                       (term-list poly)))
+;             (adjoin-term term (the-empty-termlist))))
+;       (adjoin-term term (the-empty-termlist))))
+
+; (define (add-poly p1 p2)
+;   (cond ((same-variable? (variable p1) (variable p2))
+;          (make-poly (variable p1)
+;                     (add-terms (term-list p1) (term-list p2))))
+;         ((has-variable-poly (variable p1) p2)
+;          ())))
+
+; TODO: finish 92
+
+; 93
+
+(define (install-generic-rational-package)
+  
+  (define (numer x) (car x))
+  (define (denom x) (cdr x))
+  (define (make-rat n d) (cons n d))
+  (define (add-rat x y)
+    (make-rat (add (mul (numer x) (denom y))
+                   (mul (numer y) (denom x)))
+              (mul (denom x) (denom y))))
+  (define (sub-rat x y)
+    (make-rat (sub (mul (numer x) (denom y))
+                   (mul (numer y) (denom x)))
+              (mul (denom x) (denom y))))
+  (define (mul-rat x y)
+    (make-rat (mul (numer x) (numer y))
+              (mul (denom x) (denom y))))
+  (define (div-rat x y)
+    (make-rat (mul (numer x) (denom y))
+              (mul (denom x) (numer y))))
+
+  (define (tag x) (attach-tag 'rational x))
+  (put 'add '(rational rational)
+       (lambda (x y) (tag (add-rat x y))))
+  (put 'sub '(rational rational)
+       (lambda (x y) (tag (sub-rat x y))))
+  (put 'mul '(rational rational)
+       (lambda (x y) (tag (mul-rat x y))))
+  (put 'div '(rational rational)
+       (lambda (x y) (tag (div-rat x y))))
+  (put 'make 'rational
+       (lambda (n d) (tag (make-rat n d))))
+  'done)
+
+(define (make-rational n d)
+  ((get 'make 'rational) n d))
