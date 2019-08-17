@@ -2237,3 +2237,113 @@ type b and a."
 
 (define (make-rational n d)
   ((get 'make 'rational) n d))
+
+; 94
+
+(define (remainder-terms a b)
+  (cadr (div-terms a b)))
+
+(define (gcd-terms a b)
+  (if (empty-termlist? b)
+      a
+      (gcd-terms b (remainder-terms a b))))
+
+(define (gcd-poly p1 p2)
+  (if (same-variable? (variable p1) (variable p2))
+      (make-poly (variable p1)
+                 (gcd-terms (term-list p1) (term-list p2)))
+      (error "Polys not in same var: GCD-POLY" (list p1 p2))))
+
+(define (install-greatest-common-divisor-operation)
+  (put 'greatest-common-divisor '(scheme-number scheme-number) gcd)
+  (put 'greatest-common-divisor '(polynomial polynomial) gcd-poly)
+  'done)
+
+(define (greatest-common-divisor a b)
+  (apply-generic 'greatest-common-divisor a b))
+
+; 95
+
+(define (e95)
+  (define p1 (make-polynomial 'x '((2 1) (1 -2) (0 1))))
+  (define p2 (make-polynomial 'x '((2 11) (0 7))))
+  (define p3 (make-polynomial 'x '((1 13) (0 5))))
+  (define q1 (mul p1 p2))
+  (define q2 (mul p1 p3))
+  (greatest-common-divisor q1 q2))
+
+; 96a
+
+(define (pseudoremainder-terms p q)
+  (let ((integerizing-factor (expt (coeff (first-term q))
+                                   (+ 1 (- (order (first-term p))
+                                           (order (first-term q)))))))
+    (remainder-terms (mul-term-by-all-terms p (make-term 0 integerizing-factor))
+                     q)))
+
+(define (gcd-terms-96a a b)
+  (if (empty-termlist? b)
+      a
+      (gcd-terms-96a b (pseudoremainder-terms a b))))
+
+; 96b
+
+(define (map-terms-to-list f terms)
+  (if (empty-termlist? terms)
+      '()
+      (cons (f (first-term terms))
+            (map-terms-to-list f (rest-terms terms)))))
+
+(define (gcd-terms-96b a b)
+  (if (empty-termlist? b)
+      a
+      (let ((result (gcd-terms-96b b (pseudoremainder-terms a b))))
+        (let ((gcd-coeff (apply gcd (map-terms-to-list coeff result))))
+          (map-coeff (lambda (x) (/ x gcd-coeff)) result)))))
+
+; 97a
+
+(define (reduce-terms n d)
+  (let ((gcdt (gcd-terms-96b n d))
+        (o1 (max (order (first-term n)) (order (first-term d)))))
+    (let ((integerizing-factor (expt (coeff (first-term gcdt))
+                                     (+ 1 (- o1 (order (first-term gcdt)))))))
+      (define (integerize-divide t)
+        (div-terms (mul-term-by-all-terms n (make-term 0 integerizing-factor))
+                   gcdt))
+      (let ((n2 (integerize-divide n))
+            (d2 (integerize-divide d)))
+        (let ((gcdc (apply gcd (append (map-terms-to-list coeff n2)
+                                       (map-terms-to-list coeff d2)))))
+          (list (map-coeff (lambda (c) (/ c gcdc)) n2)
+                (map-coeff (lambda (c) (/ c gcdc)) d2)))))))
+
+(define (reduce-poly p1 p2)
+  (if (same-variable? (variable p1) (variable p2))
+      (make-poly (variable p1)
+                 (reduce-terms (term-list p1) (term-list p2)))
+      (error "Polys not in same var: REDUCE-POLY" (list p1 p2))))
+
+; 97b
+
+(define (reduce-integers n d)
+  (let ((g (gcd n d)))
+    (list (/ n g) (/ d g))))
+
+(define (install-reduce-operation)
+  (put 'reduce '(scheme-number scheme-number) reduce-integers)
+  (put 'reduce '(polynomial polynomial) reduce-poly))
+
+(define (reduce n d) (apply-generic 'reduce n d))
+
+(define (install-reduced-make-rat-operation)
+
+  (define (make-rat n d)
+    (let ((reduced (reduce n d)))
+      (cons (car reduced) (cadr reduced))))
+
+  (define (tag x) (attach-tag 'rational x))
+  (put 'make 'rational
+       (lambda (n d) (tag (make-rat n d))))
+
+  'done)
