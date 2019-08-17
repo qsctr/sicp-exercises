@@ -2232,6 +2232,7 @@ type b and a."
        (lambda (x y) (tag (div-rat x y))))
   (put 'make 'rational
        (lambda (n d) (tag (make-rat n d))))
+
   'done)
 
 (define (make-rational n d)
