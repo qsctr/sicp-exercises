@@ -98,3 +98,41 @@
             ((eq? op 'reset)
              (lambda (new-value)
                (set! x new-value)))))))
+
+;;; 7
+
+(define (make-account-7 balance password)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin (set! balance (- balance amount))
+               balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (define (dispatch pw m)
+    (cond ((eq? m 'verify-password) (eq? pw password))
+          ((eq? pw password) (cond ((eq? m 'withdraw) withdraw)
+                                   ((eq? m 'deposit) deposit)
+                                   (else (error "Unknown request: MAKE-ACCOUNT"
+                                                m))))
+          (else (lambda x "Incorrect password"))))
+  dispatch)
+
+(define (make-joint acc old-password new-password)
+  (if (acc old-password 'verify-password)
+      (lambda (pw m)
+        (if (eq? pw new-password)
+            (acc old-password m)
+            "Incorrect password"))
+      "Incorrect password"))
+
+;;; 8
+
+(define f
+  (let ((z false))
+    (lambda (x)
+      (cond (z 0)
+            ((zero? x) (set! z true)
+                       0)
+            (else x)))))
