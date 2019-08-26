@@ -175,3 +175,95 @@ Iterative
                         product
                         (fact-iter (* counter product) (+ counter 1) max-count))
 "
+
+;;; 10
+
+"
+(define W1 (make-withdraw 100))
+
+           ____________________________________________________________
+          | make-withdraw:-------------------------------+             |
+global -->| W1:-+                                        |             |
+env       |_____|________________________________________|_____________|
+                |                   ^                    |        ^
+                |         __________|__________          V        |
+                |   E1 ->| initial-amount: 100 |     ---------    |
+                |        |_____________________|     | o | o-+----+
+                |                   ^                --+------
+                |             ______|_______           |
+                |   E2 ----->| balance: 100 |          |
+                V            |______________|          |
+            ---------               ^                  |
+            | o | o-+---------------+                  |
+            --+------                                  |
+              |                                        |
+              V                                        |
+parameters: amount                                     |
+body: (if (>= balance amount)                          |
+          (begin (set! balance (- balance amount))     |
+                 balance)                              |
+          \"Insufficient funds\")                      |
+                                                       V
+                          parameters: initial-amount
+                          body: (let ((balance initial-amount))
+                                  (lambda (amount)
+                                    (if (>= balance amount)
+                                        (begin (set! balance (- balance amount))
+                                        balance)
+                                        \"Insufficient funds\")))
+
+(W1 50)
+
+           ______________________________________________
+          | make-withdraw: ...                           |
+global -->| W1:-+                                        |
+env       |_____|________________________________________|
+                |                   ^
+                |         __________|__________
+                |   E1 ->| initial-amount: 100 |
+                |        |_____________________|
+                |                   ^
+                |             ______|______
+                |   E2 ----->| balance: 50 |
+                V            |_____________|
+            ---------           ^       ^
+            | o | o-+-----------+    ___|________
+            --+------               | amount: 50 |
+              |                     |____________|
+              V
+parameters: amount          (if (>= balance amount))
+body: ...                       (begin (set! balance
+                                             (- balance amount))
+                                       balance)
+                                \"Insufficient funds\")
+
+(define W2 (make-withdraw 100))
+
+           ____________________________________________________________________
+          |     make-withdraw: ...                                             |
+global -->|     W2:-----------------------------+                              |
+env       |   +-W1:                             |                              |
+          |___|_________________________________|______________________________|
+              |                   ^             |                  ^
+              |         __________|__________   |        __________|__________
+              |   E1 ->| initial-amount: 100 |  |  E3 ->| initial-amount: 100 |
+              |        |_____________________|  |       |_____________________|
+              |                   ^             |                  ^
+              |             ______|______       |            ______|_______
+              |   E2 ----->| balance: 50 |      |  E4 ----->| balance: 100 |
+              V            |_____________|      V           |______________|
+          ---------               ^         ---------              ^
+          | o | o-+---------------+         | o | o-+--------------|
+          --+------                         --+------
+            |                                 |
+            |    +----------------------------+
+            |    |
+            V    V
+      parameters: amount
+      body: ...
+
+Compared to the version without `let`, there is an extra environment containing
+the initial amount for each account object. The environment containing the
+balance and the procedure that withdraws from the balance are within this
+environment, so they can access the initial amount.
+"
