@@ -267,3 +267,74 @@ the initial amount for each account object. The environment containing the
 balance and the procedure that withdraws from the balance are within this
 environment, so they can access the initial amount.
 "
+
+;;; 11
+
+"
+                                                       +-----------------+
+                                                       |                 |
+                                                       V                 |
+           ____________________________________________________    ------+--
+          | make-account:--------------------------------------+-->| o | o |
+global -->| acc:---------------------------------------+       |   --+------
+env       |____________________________________________|_______|     |
+                                                       |             |
+                    +----------------------------------+-+           |
+                    |                                  | |           |
+                    V                                  | |           |
+     ______________________________                    V |           |
+    | balance: 30                  |               ------+--         |
+    | dispatch:--------------------+-------------->| o | o |         |
+E1->| withdraw:--------------------+-----------+   --+------         |
+    | deposit:---------------------+-------+   |     |               |
+    |______________________________|       |   |     |               |
+          ^        ^ ^           ^         |   |     |               |
+     _____|______  | |      _____|______   |   |     |               |
+E2->| amount: 40 | | | E3->| amount: 60 |  |   |     |               |
+    |____________| | |     |____________|  |   |     |               |
+                   | |                     |   |     |               |
+    +--------------+-+---------------------+   |     |               |
+    |              | |                         |     |               |
+    |   +----------+-+-------------------------+     |               |
+    |   |          | |                               |               |
+    |   |          | |                               V               +---------+
+    |   |          | | parameters: m                                           |
+    |   |          | | body: (cond ((eq? m 'withdraw) withdraw)                |
+    |   |          | |             ((eq? m 'deposit) deposit)                  |
+    |   |          | |             (else                                       |
+    |   |          | +---+          (error \"Unknown request: MAKE-ACCOUNT\"   |
+    |   |          |     |                 m)))                                |
+    |   |    ------+--   |                                                     |
+    |   +--->| o | o |   |                                                     |
+    |        --+------   +-----------------------------------+                 |
+    |          |                                             |                 |
+    |          V                                             |                 |
+    |   parameters: amount                                   |                 |
+    |   body: (if (>= balance amount)                        |                 |
+    |             (begin (set! balance (- balance amount))   |                 |
+    |                    balance)                            |                 |
+    |             \"Insufficient funds\")                    |                 |
+    |                                                        |                 |
+    |   ---------                                            |                 |
+    +-->| o | o-+--------------------------------------------+                 |
+        --+------                                                              |
+          |                                                                    |
+          V                                                                    |
+    parameters: amount                                                         |
+    body: (set! balance (+ balance amount))                   +----------------+
+          balance                                             |
+                                                              V
+                                                    parameters: balance
+                                                    body: (define withdraw ...)
+                                                    (define deposit ...)
+                                                    (define dispatch ...)
+                                                    dispatch
+
+The local state for `acc` is kept in E1.
+
+The local state for `acc2` is distinct from that of `acc` because it is stored
+in a separate environment created when `make-account` is invoked in the
+definition of `acc2`.
+
+The code for the local procedure definitions is shared between `acc` and `acc2`.
+"
