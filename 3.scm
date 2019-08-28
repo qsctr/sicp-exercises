@@ -540,3 +540,19 @@ z2 -->| o | o-+---->| o | o-+---->| o | / |
 | 1 |         | 2 |         | 3 |
 -----         -----         -----
 "
+
+;;; 17
+
+(define (count-pairs-17 x)
+  (define (go x visited)
+    (if (or (not (pair? x)) (memq x visited))
+        (cons 0 visited)
+        (let ((new-visited (cons x visited)))
+          (let ((car-result (go (car x) new-visited)))
+            (let ((car-count (car car-result))
+                  (car-visited (cdr car-result)))
+              (let ((cdr-result (go (cdr x) car-visited)))
+                (let ((cdr-count (car cdr-result))
+                      (cdr-visited (cdr cdr-result)))
+                  (cons (+ car-count cdr-count 1) cdr-visited))))))))
+  (car (go x '())))
