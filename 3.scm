@@ -449,3 +449,94 @@ z2 -->| o | o-+---->| o | o-+---->| o | / |
                    | wow |
                    -------
 "
+
+;;; 16
+
+(define (count-pairs-16 x)
+  (if (not (pair? x))
+      0
+      (+ (count-pairs-16 (car x))
+         (count-pairs-16 (cdr x))
+         1)))
+
+(define count-pairs-test-3 '(1 2 3))
+(count-pairs-16 count-pairs-test-3) ; ==> 3
+
+"
+---------     ---------     ---------
+| o | o-+---->| o | o-+---->| o | / |
+--+------     --+------     --+------
+  |             |             |
+  V             V             V
+-----         -----         -----
+| 1 |         | 2 |         | 3 |
+-----         -----         -----
+"
+
+(define count-pairs-test-4
+  (let ((x '(1)))
+    (list x x)))
+(count-pairs-16 count-pairs-test-4) ; ==> 4
+
+"
+---------     ---------
+| o | o-+---->| o | / |
+--+------     --+------
+  |             |
+  V             |
+---------       |
+| o | / |<------+
+--+------
+  |
+  V
+-----
+| 1 |
+-----
+"
+
+(define count-pairs-test-7
+  (let ((x '(1)))
+    (let ((y (cons x x)))
+      (cons y y))))
+(count-pairs-16 count-pairs-test-7) ; ==> 7
+
+"
+---------
+| o | o |
+--+---+--
+  |   |
+  V   V
+---------
+| o | o |
+--+---+--
+  |   |
+  V   V
+---------
+| o | / |
+--+------
+  |
+  V
+-----
+| 1 |
+-----
+"
+
+(define count-pairs-test-infinite
+  (let ((x '(1 2 3)))
+    (set-cdr! (last-pair x) x)
+    x))
+; (count-pairs-16 count-pairs-test-infinite) ; ==> does not return
+
+"
+    +-----------------------------+
+    |                             |
+    V                             |
+---------     ---------     ------+--
+| o | o-+---->| o | o-+---->| o | o |
+--+------     --+------     --+------
+  |             |             |
+  V             V             V
+-----         -----         -----
+| 1 |         | 2 |         | 3 |
+-----         -----         -----
+"
