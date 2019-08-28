@@ -611,3 +611,89 @@ global env -->| x:------------------+           |
                                 parameters: m
                                 body: (cond ...)
 "
+
+;;; 21
+
+(define (front-ptr-21 queue) (car queue))
+(define (rear-ptr-21  queue) (cdr queue))
+(define (set-front-ptr-21! queue item)
+  (set-car! queue item))
+(define (set-rear-ptr-21!  queue item)
+  (set-cdr! queue item))
+
+(define (empty-queue-21? queue)
+  (null? (front-ptr-21 queue)))
+
+(define (make-queue-21) (cons '() '()))
+
+(define (front-queue-21 queue)
+  (if (empty-queue-21? queue)
+      (error "FRONT called with an empty queue" queue)
+      (car (front-ptr-21 queue))))
+
+(define (insert-queue-21! queue item)
+  (let ((new-pair (cons item '())))
+    (cond ((empty-queue-21? queue)
+           (set-front-ptr-21! queue new-pair)
+           (set-rear-ptr-21! queue new-pair)
+           queue)
+          (else
+           (set-cdr! (rear-ptr-21 queue) new-pair)
+           (set-rear-ptr-21! queue new-pair)
+           queue))))
+
+(define (delete-queue-21! queue)
+  (cond ((empty-queue-21? queue)
+         (error "DELETE! called with an empty queue" queue))
+        (else (set-front-ptr-21! queue (cdr (front-ptr-21 queue)))
+              queue)))
+
+"The interpreter interprets the queue as a standard cons-list so it seems like
+there are duplicates in the queue because the front and rear pointers point to
+shared data (the data at the end of the queue).
+
+After 'a is inserted, q1 is (cons (cons a '()) (cons a '())) which is displayed
+as ((a) a).
+After 'b is inserted, q1 is (cons (cons a (cons b '())) (cons b '())) which is
+displayed as ((a b) b)."
+
+(define (print-queue-21 queue)
+  (display (front-ptr-21 queue)))
+
+;;; 22
+
+(define (make-queue-22)
+  (let ((front-ptr '())
+        (rear-ptr '()))
+    (define (empty-queue?)
+      (null? front-ptr))
+    (define (front-queue)
+      (if (empty-queue?)
+          (error "FRONT called with an empty queue" dispatch)
+          (car front-ptr)))
+    (define (insert-queue! item)
+      (let ((new-pair (cons item '())))
+        (cond ((empty-queue?)
+               (set! front-ptr new-pair)
+               (set! rear-ptr new-pair)
+               dispatch)
+              (else
+               (set-cdr! rear-ptr new-pair)
+               (set! rear-ptr new-pair)
+               dispatch))))
+    (define (delete-queue!)
+      (cond ((empty-queue?)
+             (error "DELETE! called with an empty queue" dispatch))
+            (else (set! front-ptr (cdr front-ptr))
+                  dispatch)))
+    (define (dispatch m)
+      (cond ((eq? m 'empty-queue?) empty-queue?)
+            ((eq? m 'front-queue) front-queue)
+            ((eq? m 'insert-queue!) insert-queue!)
+            ((eq? m 'delete-queue!) delete-queue!)))
+    dispatch))
+
+(define (empty-queue-22? queue) ((queue 'empty-queue?)))
+(define (front-queue-22 queue) ((queue 'front-queue)))
+(define (insert-queue-22! queue item) ((queue 'insert-queue!) item))
+(define (delete-queue-22! queue) ((queue 'delete-queue!)))
