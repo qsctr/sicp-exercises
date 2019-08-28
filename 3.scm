@@ -559,9 +559,25 @@ z2 -->| o | o-+---->| o | o-+---->| o | / |
 
 ;;; 18
 
-(define (cyclical? x)
+(define (cyclical-18? x)
   (define (go x visited)
     (cond ((null? x) false)
           ((memq x visited) true)
           (else (go (cdr x) (cons x visited)))))
   (go x '()))
+
+;;; 19
+
+(define (cyclical-19? x)
+  (define (go a b)
+    (if (null? a)
+        false
+        (let ((a1 (cdr a)))
+          (if (null? a1)
+              false
+              (let ((a2 (cdr a1))
+                    (b1 (cdr b)))
+                (if (eq? a2 b1)
+                    true
+                    (go a2 b1)))))))
+  (go x x))
