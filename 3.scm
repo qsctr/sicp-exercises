@@ -556,3 +556,12 @@ z2 -->| o | o-+---->| o | o-+---->| o | / |
                       (cdr-visited (cdr cdr-result)))
                   (cons (+ car-count cdr-count 1) cdr-visited))))))))
   (car (go x '())))
+
+;;; 18
+
+(define (cyclical? x)
+  (define (go x visited)
+    (cond ((null? x) false)
+          ((memq x visited) true)
+          (else (go (cdr x) (cons x visited)))))
+  (go x '()))
