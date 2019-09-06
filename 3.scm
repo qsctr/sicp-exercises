@@ -697,3 +697,78 @@ displayed as ((a b) b)."
 (define (front-queue-22 queue) ((queue 'front-queue)))
 (define (insert-queue-22! queue item) ((queue 'insert-queue!) item))
 (define (delete-queue-22! queue) ((queue 'delete-queue!)))
+
+;;; 23
+
+;; deque-cell
+
+(define (make-deque-cell item next prev)
+  (cons item (cons next prev)))
+
+(define (item-deque-cell cell) (car cell))
+(define (next-deque-cell cell) (cadr cell))
+(define (prev-deque-cell cell) (cddr cell))
+
+(define (set-next-deque-cell! cell next)
+  (set-car! (cdr cell) next))
+(define (set-prev-deque-cell! cell prev)
+  (set-cdr! (cdr cell) prev))
+
+;; deque
+
+(define (make-deque)
+  (let ((deque (make-deque-cell '() '() '())))
+    (set-next-deque-cell! deque deque)
+    (set-prev-deque-cell! deque deque)
+    deque))
+
+(define (empty-deque? deque)
+  (eq? (next-deque-cell deque) deque))
+
+(define (front-deque deque)
+  (if (empty-deque? deque)
+      (error "FRONT called with an empty deque" deque)
+      (item-deque-cell (prev-deque-cell deque))))
+
+(define (rear-deque deque)
+  (if (empty-deque? deque)
+      (error "REAR called with an empty deque" deque)
+      (item-deque-cell (next-deque-cell deque))))
+
+(define (front-insert-deque! deque item)
+  (let ((prev-front (prev-deque-cell deque)))
+    (let ((new-front (make-deque-cell item deque prev-front)))
+      (set-next-deque-cell! prev-front new-front)
+      (set-prev-deque-cell! deque new-front)
+      deque)))
+
+(define (rear-insert-deque! deque item)
+  (let ((prev-rear (next-deque-cell deque)))
+    (let ((new-rear (make-deque-cell item prev-rear deque)))
+      (set-prev-deque-cell! prev-rear new-rear)
+      (set-next-deque-cell! deque new-rear)
+      deque)))
+
+(define (front-delete-deque! deque)
+  (if (empty-deque? deque)
+      (error "FRONT-DELETE! called with an empty deque" deque)
+      (let ((new-front (prev-deque-cell (prev-deque-cell deque))))
+        (set-next-deque-cell! new-front deque)
+        (set-prev-deque-cell! deque new-front)
+        deque)))
+
+(define (rear-delete-deque! deque)
+  (if (empty-deque? deque)
+      (error "REAR-DELETE! called with an empty deque" deque)
+      (let ((new-rear (next-deque-cell (next-deque-cell deque))))
+        (set-prev-deque-cell! new-rear deque)
+        (set-next-deque-cell! deque new-rear)
+        deque)))
+
+(define (print-deque deque)
+  (define (go cell)
+    (if (not (eq? cell deque))
+        (begin (display (item-deque-cell cell))
+               (display " ")
+               (go (prev-deque-cell cell)))))
+  (go (prev-deque-cell deque)))
