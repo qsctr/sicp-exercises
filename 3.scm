@@ -805,3 +805,29 @@ displayed as ((a b) b)."
             ((eq? m 'insert-proc!) insert!)
             (else (error "Unknown operation: TABLE" m))))
     dispatch))
+
+;;; 25
+
+(define (make-nd-table)
+  (list '*table*))
+
+(define (lookup-nd keys table)
+  (cond ((not table) false)
+        ((null? keys) (cdr table))
+        (else (lookup-nd (cdr keys)
+                         (assoc (car keys) (cdr table))))))
+
+(define (insert-nd! keys value table)
+  (if (null? keys)
+      (set-cdr! table value)
+      (let ((subtable (assoc (car keys) (cdr table))))
+        (define (make-subtables ks)
+          (cons (car ks)
+                (if (null? (cdr ks))
+                    value
+                    (list (make-subtables (cdr ks))))))
+        (if subtable
+            (insert-nd! (cdr keys) value subtable)
+            (set-cdr! table (cons (make-subtables keys)
+                                  (cdr table))))))
+  'ok)
