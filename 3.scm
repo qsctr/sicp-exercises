@@ -831,3 +831,49 @@ displayed as ((a b) b)."
             (set-cdr! table (cons (make-subtables keys)
                                   (cdr table))))))
   'ok)
+
+;;; 26
+
+;; tree
+
+(define (make-tree key value)
+  (cons (cons key value) (cons '() '())))
+
+(define (key-tree tree) (caar tree))
+(define (value-tree tree) (cdar tree))
+(define (left-branch tree) (cadr tree))
+(define (right-branch tree) (cddr tree))
+
+(define (set-value! tree value) (set-cdr! (car tree) value))
+(define (set-left-branch! tree left) (set-car! (cdr tree) left))
+(define (set-right-branch! tree right) (set-cdr! (cdr tree) right))
+
+;; tree-table
+
+(define (make-tree-table)
+  (list '*table*))
+
+(define (lookup-tree key table)
+  (define (go tree)
+    (if (null? tree)
+        false
+        (let ((k (key-tree tree)))
+          (cond ((< key k) (go (left-branch tree)))
+                ((> key k) (go (right-branch tree)))
+                (else (value-tree tree))))))
+  (go (cdr table)))
+
+(define (insert-tree! key value table)
+  (define (go tree)
+    (let ((k (key-tree tree)))
+      (cond ((< key k) (if (null? (left-branch tree))
+                           (set-left-branch! tree (make-tree key value))
+                           (go (left-branch tree))))
+            ((> key k) (if (null? (right-branch tree))
+                           (set-right-branch! tree (make-tree key value))
+                           (go (right-branch tree))))
+            (else (set-value! tree value)))))
+  (if (null? (cdr table))
+      (set-cdr! table (make-tree key value))
+      (go (cdr table)))
+  'ok)
