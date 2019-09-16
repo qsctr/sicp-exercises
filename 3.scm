@@ -877,3 +877,88 @@ displayed as ((a b) b)."
       (set-cdr! table (make-tree key value))
       (go (cdr table)))
   'ok)
+
+;;; 27
+
+"
+environments:
+  global:
+    memoize: procedure memoize
+    memo-fib: procedure memoized-fib
+  E1: -> global ; (memoize (lambda (n) ...))
+    f: procedure memo-fib-body
+  E2: -> E1 ; (let ((table (make-table))))
+    table: (*table* (2 . 1) (0 . 0) (1 . 1))
+  E3: -> E2 ; (memo-fib 3)
+    x: 3
+  E4: -> E3 ; (let ((previously-computed-result (lookup 3 table))))
+    previously-computed-result: false
+  E5: -> E4 ; (let ((result (f 3))))
+    result: 2
+  E6: -> global ; ((lambda (n) ...) 3)
+    n: 3
+  E7: -> E2 ; (memo-fib 2)
+    x: 2
+  E8: -> E7 ; (let ((previously-computed-result (lookup 2 table))))
+    previously-computed-result: false
+  E9: -> E8 ; (let ((result (f 2))))
+    result: 1
+  E10: -> global ; ((lambda (n) ...) 2)
+    n: 2
+  E11: -> E2 ; (memo-fib 1)
+    x: 1
+  E12: -> E11 ; (let ((previously-computed-result (lookup 1 table))))
+    previously-computed-result: false
+  E13: -> E12 ; (let ((result (f 1))))
+    result: 1
+  E14: -> global ; ((lambda (n) ...) 1)
+    n: 1
+  E15: -> E2 ; (memo-fib 0)
+    x: 0
+  E16: -> E15 ; (let ((previously-computed-result (lookup 0 table))))
+    previously-computed-result: false
+  E17: -> E16 ; (let ((result (f 0))))
+    result: 0
+  E18: -> global ; ((lambda (n) ...) 0)
+    n: 0
+  E19: -> global ; (memo-fib 1)
+    x: 1
+  E20: -> E19 ; (let ((previously-computed-result (lookup 2 table))))
+    previously-computed-result: 1
+
+procedures:
+  memoize:
+    environment: global
+    parameters: f
+    body: (let ((table (make-table)))
+            (lambda (x) ...))
+  memoized-fib:
+    environment: E2
+    parameters: x
+    body: (let ((previously-computed-result (lookup x table)))
+            (or previously-computed-result ...))
+  memo-fib-body:
+    environment: global
+    parameters: n
+    body: (cond ((= n 0) 0)
+                ...)
+"
+
+"memo-fib has O(n) complexity because for any k it only needs to compute f(k)
+once. To compute f(n), f(k) needs to be computed for every k in [0, n].
+Therefore, there are n + 1 calls to f in the computation of f(n) for any n,
+which is proportional to n.
+Each call to memo-fib, including the table operations, takes a constant number
+of steps. If x = 1, the table will be empty and f(1) can be computed in constant
+time. If x = 0, the table will have 1 record (1) and f(0) can also be computed
+in constant time. If x >= 2, f(n - 1) and f(n - 2) will have already been
+computed, and since records are added to the table with keys in ascending order
+(except for 1 and 0), the records for n - 1 and n - 2 will be at most 2 cdrs
+away from the head of the table (except for when n = 3, where 1 is 3 cdrs away).
+Therefore, the lookup operation always takes constant time. The insert operation
+is also O(1) because it adds the new record at the head of the list.
+"
+
+"(define memo-fib (memoize fib)) would not work, because when fib makes
+recursive calls, it calls fib, which is the non-memoized version, instead of
+memo-fib, so the results cannot be saved in the table."
