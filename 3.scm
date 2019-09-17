@@ -973,3 +973,15 @@ memo-fib, so the results cannot be saved in the table."
   (add-action! a1 or-action-procedure)
   (add-action! a2 or-action-procedure)
   'ok)
+
+;;; 29
+
+(define (or-gate-compound a1 a2 output)
+  (let ((w1 (make-wire)) (w2 (make-wire)) (w3 (make-wire)))
+    (inverter a1 w1)
+    (inverter a2 w2)
+    (and-gate w1 w2 w3)
+    (inverter w3 output)
+    'ok))
+
+"The delay time is 2 * inverter-delay + and-gate-delay."
