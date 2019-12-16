@@ -1006,3 +1006,29 @@ memo-fib, so the results cannot be saved in the table."
     'ok))
 
 "The delay time is 2 * inverter-delay + and-gate-delay."
+
+;;; 30
+
+(define (half-adder a b s c)
+  (let ((d (make-wire)) (e (make-wire)))
+    (or-gate a b d)
+    (and-gate a b c)
+    (inverter c e)
+    (and-gate d e s)
+    'ok))
+
+(define (full-adder a b c-in sum c-out)
+  (let ((s (make-wire)) (c1 (make-wire)) (c2 (make-wire)))
+    (half-adder b c-in s c1)
+    (half-adder a s sum c2)
+    (or-gate c1 c2 c-out)
+    'ok))
+
+(define (ripple-carry-adder as bs ss c)
+  (if (or (null? as) (null? bs) (null? ss))
+      'ok
+      (let ((c-out (make-wire)))
+        (full-adder (car as) (car bs) c (car ss) c-out)
+        (ripple-carry-adder (cdr as) (cdr bs) (cdr ss) c-out))))
+
+;; TODO: calculate delay
